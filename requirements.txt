@@ -1,0 +1,13 @@
+bs4
+urllib3
+marshmallow
+pandas_ta
+numpy
+matplotlib
+scikit-learn
+pandas 
+Cython  
+tensorflow 
+plotly 
+nbformat 
+prophet
