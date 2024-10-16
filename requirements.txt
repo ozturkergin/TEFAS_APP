@@ -11,3 +11,4 @@ tensorflow
 plotly 
 nbformat 
 prophet
+streamlit
