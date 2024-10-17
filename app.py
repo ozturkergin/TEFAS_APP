@@ -1,4 +1,6 @@
 import streamlit as st
+import pandas as pd
+import os
 
 home_page = st.Page(
     "pages/Home.py",
@@ -44,6 +46,11 @@ pg = st.navigation(
 )
 
 st.set_page_config(layout="wide")
+
+if os.path.exists('data/fon_table.csv') :
+    if 'df_fon_table' not in st.session_state :
+        st.session_state.df_fon_table = pd.read_csv('data/fon_table.csv')
+
 #st.logo("assets/logo.png")
 #st.sidebar.markdown("Ergin Öztürk")
 

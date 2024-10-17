@@ -4,9 +4,15 @@ import os
 from datetime import datetime
 
 # Load unique symbols and titles from fon_table.csv
-df_fon_table = pd.read_csv('data/fon_table.csv')
+if os.path.exists('data/fon_table.csv') :
+    if 'df_fon_table' in st.session_state :
+        df_fon_table = st.session_state.df_fon_table 
+    else : 
+        df_fon_table = pd.read_csv('data/fon_table.csv')
+
 unique_symbols = sorted(df_fon_table['symbol'].unique().tolist())
-symbol_titles = df_fon_table.set_index('symbol')['title'].to_dict()  # Dictionary for codewithtext
+
+symbol_titles = df_fon_table.set_index('symbol')['title'].to_dict() 
 
 # Function to load/save favorites
 def manage_favorites(favorites_file='data/favorites.csv'):

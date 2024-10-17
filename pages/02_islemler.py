@@ -3,10 +3,12 @@ import pandas as pd
 import os
 from datetime import datetime
 
-#st.set_page_config(page_title="TEFAS Analiz", page_icon=":bar_chart:", layout="wide", initial_sidebar_state="expanded")
+if os.path.exists('data/fon_table.csv') :
+    if 'df_fon_table' in st.session_state :
+        df_fon_table = st.session_state.df_fon_table 
+    else : 
+        df_fon_table = pd.read_csv('data/fon_table.csv')
 
-# Load unique symbols from fon_table.csv
-df_fon_table = pd.read_csv('data/fon_table.csv')
 unique_symbols = sorted(df_fon_table['symbol'].unique().tolist())
 
 # Load tefas_transformed.csv for unit prices

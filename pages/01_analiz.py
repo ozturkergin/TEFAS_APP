@@ -4,8 +4,7 @@ import numpy as np
 import seaborn as sns
 import plotly.express as px
 import plotly.graph_objects as go
-
-#st.set_page_config(page_title="TEFAS Analiz", page_icon=":bar_chart:", layout="wide", initial_sidebar_state="expanded")
+import os
 
 combined_filtered_symbols = pd.DataFrame()
 filtered_symbols = pd.DataFrame()
@@ -22,7 +21,12 @@ def turkish_sort(x):
 
 @st.cache_data
 def fetch_data():
-    df_fon_table = pd.read_csv('data/fon_table.csv')
+    if os.path.exists('data/fon_table.csv') :
+        if 'df_fon_table' in st.session_state :
+            df_fon_table = st.session_state.df_fon_table 
+        else : 
+            df_fon_table = pd.read_csv('data/fon_table.csv')
+            
     df_transformed = pd.read_csv('data/tefas_transformed.csv')
     symbol_attributes_of_fon_table = [col for col in df_fon_table.columns if col.startswith('symbol_')]
     symbol_attributes_list = np.array([col.replace('symbol_', '') for col in symbol_attributes_of_fon_table])
