@@ -1,1 +1,8 @@
+# Ignore all CSV files inside the /data/ folder
 /data/*.csv
+
+# Do not ignore the /data/ folder itself
+!data/
+
+# Allow an empty file (e.g., .gitkeep) in the /data/ folder to track the folder
+!data/.gitkeep
