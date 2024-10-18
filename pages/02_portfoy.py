@@ -8,6 +8,8 @@ if os.path.exists('data/fon_table.csv') :
         df_fon_table = st.session_state.df_fon_table 
     else : 
         df_fon_table = pd.read_csv('data/fon_table.csv')
+else : 
+    st.warning("Entegrasyon çalıştırınız")
 
 unique_symbols = sorted(df_fon_table['symbol'].unique().tolist())
 
@@ -18,12 +20,19 @@ df_tefas['date'] = pd.to_datetime(df_tefas['date'])
 # Define a function to load portfolio data or create an empty DataFrame
 def load_portfolio():
     if os.path.exists("data/myportfolio.csv"):
-        return_df = pd.read_csv("data/myportfolio.csv")
-        return_df['quantity'] = return_df['quantity'].astype(int)
-        return_df['date'] = pd.to_datetime(return_df['date'], errors='coerce')  # Convert date to datetime
+        if 'myportfolio' in st.session_state :
+            myportfolio = st.session_state.myportfolio 
+        else : 
+            myportfolio = pd.read_csv('data/myportfolio.csv')
+
+        st.warning("İşlem girdikten sonra portföyünüz oluşacaktır")
+
+        # return_df = pd.read_csv("data/myportfolio.csv")
+        myportfolio['quantity'] = myportfolio['quantity'].astype(int)
+        myportfolio['date'] = pd.to_datetime(myportfolio['date'], errors='coerce')  # Convert date to datetime
 
         # Merge portfolio with tefas price data on 'symbol' and 'date'
-        merged_df = pd.merge(return_df, df_tefas[['symbol', 'date', 'close']], on=['symbol', 'date'], how='left')
+        merged_df = pd.merge(myportfolio, df_tefas[['symbol', 'date', 'close']], on=['symbol', 'date'], how='left')
         merged_df.rename(columns={'close': 'price'}, inplace=True)
         return merged_df
     else:

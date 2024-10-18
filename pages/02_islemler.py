@@ -8,6 +8,12 @@ if os.path.exists('data/fon_table.csv') :
         df_fon_table = st.session_state.df_fon_table 
     else : 
         df_fon_table = pd.read_csv('data/fon_table.csv')
+else: 
+    df_fon_table = pd.DataFrame()
+    st.warning("Entegrasyon çalıştırınız")
+
+if df_fon_table.empty:
+    st.stop()
 
 unique_symbols = sorted(df_fon_table['symbol'].unique().tolist())
 

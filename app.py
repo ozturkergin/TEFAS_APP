@@ -34,15 +34,13 @@ fonfavori_page = st.Page(
     icon=":material/book:",
 )
 
-# pg = st.navigation(pages=[about_page, project_1_page, project_2_page])
-
-# --- NAVIGATION SETUP [WITH SECTIONS]---
 pg = st.navigation(
     {
         "Analiz": [home_page, analiz_page],
         "Entegrasyon": [entegrasyon_page],
         "Portföy": [islemler_page, portfoy_page, fonfavori_page],
-    }
+    }, 
+    position="sidebar"
 )
 
 st.set_page_config(layout="wide")
@@ -50,9 +48,11 @@ st.set_page_config(layout="wide")
 if os.path.exists('data/fon_table.csv') :
     if 'df_fon_table' not in st.session_state :
         st.session_state.df_fon_table = pd.read_csv('data/fon_table.csv')
+else: 
+    st.page_link(page="pages/03_entegrasyon.py")
 
-#st.logo("assets/logo.png")
-#st.sidebar.markdown("Ergin Öztürk")
+if os.path.exists('data/myportfolio.csv') :
+    if 'myportfolio' not in st.session_state :
+        st.session_state.myportfolio = pd.read_csv('data/myportfolio.csv')
 
-# --- RUN NAVIGATION ---
 pg.run()
