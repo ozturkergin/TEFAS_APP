@@ -15,8 +15,6 @@ from bs4 import BeautifulSoup
 
 # Special thanks to https://github.com/burakyilmaz321
 
-#st.set_page_config(page_title="TEFAS Analiz", page_icon=":bar_chart:", layout="wide", initial_sidebar_state="expanded")
-
 class InfoSchema(Schema):
     code = fields.String(data_key="FONKODU", allow_none=True)
     fonunvantip = fields.String(data_key="FONUNVANTIP", allow_none=True)
