@@ -9,7 +9,11 @@ if os.path.exists('data/fon_table.csv') :
     else : 
         df_fon_table = pd.read_csv('data/fon_table.csv')
 else : 
+    df_fon_table = pd.DataFrame()
     st.warning("Entegrasyon çalıştırınız")
+
+if df_fon_table.empty:
+    st.stop()
 
 unique_symbols = sorted(df_fon_table['symbol'].unique().tolist())
 
@@ -25,8 +29,6 @@ def load_portfolio():
         else : 
             myportfolio = pd.read_csv('data/myportfolio.csv')
 
-        st.warning("İşlem girdikten sonra portföyünüz oluşacaktır")
-
         # return_df = pd.read_csv("data/myportfolio.csv")
         myportfolio['quantity'] = myportfolio['quantity'].astype(int)
         myportfolio['date'] = pd.to_datetime(myportfolio['date'], errors='coerce')  # Convert date to datetime
@@ -36,7 +38,7 @@ def load_portfolio():
         merged_df.rename(columns={'close': 'price'}, inplace=True)
         return merged_df
     else:
-        # Create an empty DataFrame with predefined columns
+        st.warning("İşlem girdikten sonra portföyünüz oluşacaktır")
         return pd.DataFrame(columns=['symbol', 'date', 'transaction_type', 'quantity', 'price'])
 
 # Load the portfolio data
