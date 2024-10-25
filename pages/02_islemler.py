@@ -34,9 +34,8 @@ if os.path.exists('data/tefas_transformed.csv') :
 def load_portfolio():
     if os.path.exists("data/myportfolio.csv"):
         return_df = pd.read_csv("data/myportfolio.csv")
-        
-        # Fill missing values in 'quantity' column with 0 before casting to integer
-        return_df['quantity'] = pd.to_numeric(return_df['quantity'], errors='coerce').fillna(0).astype(int)
+
+        return_df['quantity'] = pd.to_numeric(return_df['quantity'], errors='coerce').fillna(0).astype(int) # Fill missing values in 'quantity' column with 0 before casting to integer
         return_df['date']     = pd.to_datetime(return_df['date'], errors='coerce')  # Convert date to datetime
         
         # Merge portfolio with tefas price data on 'symbol' and 'date'

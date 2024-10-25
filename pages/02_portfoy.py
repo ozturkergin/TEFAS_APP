@@ -17,9 +17,13 @@ if df_fon_table.empty:
 
 unique_symbols = sorted(df_fon_table['symbol'].unique().tolist())
 
-# Load tefas_transformed.csv for unit prices
-df_tefas = pd.read_csv('data/tefas_transformed.csv')
-df_tefas['date'] = pd.to_datetime(df_tefas['date'])
+if os.path.exists('data/tefas_transformed.csv') :
+    if 'df_transformed' in st.session_state :
+        df_transformed = st.session_state.df_transformed 
+    else : 
+        df_transformed = pd.read_csv('data/tefas_transformed.csv')
+        df_transformed['date'] = pd.to_datetime(df_transformed['date'], errors='coerce')
+        st.session_state.df_transformed = df_transformed
 
 # Define a function to load portfolio data or create an empty DataFrame
 def load_portfolio():
@@ -28,13 +32,10 @@ def load_portfolio():
             myportfolio = st.session_state.myportfolio 
         else : 
             myportfolio = pd.read_csv('data/myportfolio.csv')
+            myportfolio['quantity'] = pd.to_numeric(myportfolio['quantity'], errors='coerce').fillna(0).astype(int)
+            myportfolio['date'] = pd.to_datetime(myportfolio['date'], errors='coerce')  # Convert date to datetime
 
-        # return_df = pd.read_csv("data/myportfolio.csv")
-        myportfolio['quantity'] = myportfolio['quantity'].astype(int)
-        myportfolio['date'] = pd.to_datetime(myportfolio['date'], errors='coerce')  # Convert date to datetime
-
-        # Merge portfolio with tefas price data on 'symbol' and 'date'
-        merged_df = pd.merge(myportfolio, df_tefas[['symbol', 'date', 'close']], on=['symbol', 'date'], how='left')
+        merged_df = pd.merge(myportfolio, df_transformed[['symbol', 'date', 'close']], on=['symbol', 'date'], how='left') # Merge portfolio with tefas price data on 'symbol' and 'date'
         merged_df.rename(columns={'close': 'price'}, inplace=True)
         return merged_df
     else:
@@ -46,42 +47,13 @@ df_portfolio = load_portfolio()
 
 # Check if the portfolio is empty and set up initial DataFrame
 if df_portfolio.empty:
-    df_portfolio = pd.DataFrame({
-        "symbol": [""],  # Empty cell for user input
-        "date": [datetime.today().date()],  # Default to today's date
-        "transaction_type": [""],  # Empty cell for selection
-        "quantity": [0],  # Empty cell for user input
-        "price": [0],  # Empty cell for user input
-    })
-else:
-    # Add an extra empty line if the portfolio is not empty
-    empty_row = pd.DataFrame({
-        "symbol": [""],
-        "date": [datetime.today().date()],  # Today's date
-        "transaction_type": [""],
-        "quantity": [0],
-        "price": [0],
-    })
-    df_portfolio = pd.concat([df_portfolio, empty_row], ignore_index=True)
-
-# Ensure the date column is treated as datetime for the data editor
-df_portfolio['date'] = pd.to_datetime(df_portfolio['date'], errors='coerce')
-
-# Set up column configuration
-column_config = {
-    "symbol": st.column_config.SelectboxColumn("Fon", help="Stock symbol", options=unique_symbols),
-    "date": st.column_config.DateColumn("Tarih", help="Transaction date"),  # Proper date column
-    "transaction_type": st.column_config.SelectboxColumn("İşlem", options=["buy", "sell"], help="Select buy or sell"),
-    "quantity": st.column_config.NumberColumn("Miktar", help="Number of shares", min_value=1, step=1),
-}
+    st.stop()
 
 col3, col2 = st.columns([100, 1])
 
-# Create a summary dataframe
-df_summary = pd.DataFrame(columns=['Fon', 'Unvan', 'Miktar', 'Maliyet', 'Gider', 'Fiyat', 'Tutar', 'Δ', 'Başarı Δ', 'Volatilite', 'Sharpe Oranı'])
-
-# Sorting transactions by symbol and date
-df_portfolio = df_portfolio[df_portfolio['symbol'] != ""].sort_values(by=['symbol', 'date'])
+df_summary = pd.DataFrame(columns=['Fon', 'Unvan', 'Miktar', 'Maliyet', 'Gider', 'Fiyat', 'Tutar', 'Δ', 'Başarı Δ', 'Volatilite', 'Sharpe Oranı']) # Create a summary dataframe
+df_portfolio['date'] = pd.to_datetime(df_portfolio['date'], errors='coerce') # Ensure the date column is treated as datetime for the data editor
+df_portfolio = df_portfolio[df_portfolio['symbol'] != ""].sort_values(by=['symbol', 'date']) # Sorting transactions by symbol and date
 
 # Function to calculate volatility and Sharpe ratio (simplified)
 def calculate_sharpe_ratio(daily_returns):
@@ -103,8 +75,7 @@ with col3:
         total_days = 0
         quantity_remained = 0
 
-        # Get the most recent price and date for this symbol
-        recent_data = df_tefas[df_tefas['symbol'] == symbol].sort_values('date')
+        recent_data = df_transformed[df_transformed['symbol'] == symbol].sort_values('date') # Get the most recent price and date for this symbol
         
         if len(recent_data) == 0:
             st.warning(f"No recent price data found for {symbol}. Skipping...")
@@ -118,7 +89,7 @@ with col3:
             transaction_type = row['transaction_type']
             transaction_date = row['date']
             quantity = row['quantity']
-            unit_price = df_tefas.loc[(df_tefas['symbol'] == symbol) & (df_tefas['date'] == transaction_date), 'close']
+            unit_price = df_transformed.loc[(df_transformed['symbol'] == symbol) & (df_transformed['date'] == transaction_date), 'close']
             symbol_title = df_fon_table.loc[(df_fon_table['symbol'] == symbol), 'title']
             
             if not unit_price.empty:
@@ -177,7 +148,7 @@ with col3:
             yearly_gain = weighted_daily_gain / total_days
 
             # Calculate volatility (standard deviation of daily returns) and Sharpe ratio
-            daily_returns = df_tefas[df_tefas['symbol'] == symbol].sort_values('date')['close'].pct_change()
+            daily_returns = df_transformed[df_transformed['symbol'] == symbol].sort_values('date')['close'].pct_change()
             volatility = daily_returns.std() * (252 ** 0.5)  # Annualized volatility
             sharpe_ratio = calculate_sharpe_ratio(daily_returns)
 
