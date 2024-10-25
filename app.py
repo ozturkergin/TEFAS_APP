@@ -54,7 +54,7 @@ else:
 if os.path.exists('data/tefas_transformed.csv') :
     if 'df_transformed' not in st.session_state :
         st.session_state.df_transformed = pd.read_csv('data/tefas_transformed.csv')
-        st.session_state.df_transformed['date'] = pd.to_datetime(st.session_state.df_transformed['date'])
+        st.session_state.df_transformed['date'] = pd.to_datetime(st.session_state.df_transformed['date'], errors='coerce')
 else: 
     st.page_link(page="pages/03_entegrasyon.py")
 

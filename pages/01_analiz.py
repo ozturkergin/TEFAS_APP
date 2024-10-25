@@ -6,8 +6,6 @@ import plotly.graph_objects as go
 import os
 
 symbol_attributes_df = pd.DataFrame()
-df_combined_symbol_metrics = pd.DataFrame()
-df_combined_symbol_history = pd.DataFrame()
 set_filtered_symbols = set()
 
 # Turkish sorting function
@@ -46,6 +44,9 @@ def fetch_data():
 
     return df_merged, df_fon_table, symbol_attributes_df
 
+if 'filter_label' not in st.session_state:
+    st.session_state.filter_label = "1m"
+
 # Date range filtering
 def filter_get_min_date(range_type):
     max_date = df_merged['date'].max()
@@ -63,27 +64,15 @@ def filter_get_min_date(range_type):
         min_date = df_merged['date'].min()
     return min_date
 
-if 'filter_label' not in st.session_state:
-    st.session_state.filter_label = "1m"
-
 def color_gradient(val, column_name):
-    # Exclude NaN and inf values
-    if pd.isna(val) or np.isinf(val):
+    if pd.isna(val) or np.isinf(val):   # Exclude NaN and inf values
         return ''
     
-    # Get the ranks of the values in the specified column
-    ranks = df_combined_symbol_metrics[column_name].rank(method='min')
+    ranks = df_combined_symbol_metrics[column_name].rank(method='min')  # Get the ranks of the values in the specified column
     max_rank = ranks.max()
-    
-    # Get the rank of the current value
-    current_rank = ranks.loc[df_combined_symbol_metrics[column_name] == val].values[0]
-    
-    # Normalize the rank to [0, 1]
-    norm_val = (current_rank - 1) / (max_rank - 1)  # Subtract 1 to make it 0-indexed
-    
-    # Ensure normalization is within [0, 1]
-    norm_val = np.clip(norm_val, 0, 1)
-    
+    current_rank = ranks.loc[df_combined_symbol_metrics[column_name] == val].values[0] # Get the rank of the current value
+    norm_val = (current_rank - 1) / (max_rank - 1)  # Normalize the rank to [0, 1] Subtract 1 to make it 0-indexed
+    norm_val = np.clip(norm_val, 0, 1) # Ensure normalization is within [0, 1]
     color = sns.color_palette("RdYlGn", as_cmap=True)(norm_val)
     return f'background-color: rgba{tuple(int(c * 255) for c in color[:3])}'
 
@@ -109,11 +98,9 @@ def plot_cumulative_change(df_filtered, set_filtered_symbols, title=""):
 
     # Loop through each selected symbol in filtered_fons
     for symbol in set_filtered_symbols:
-        symbol_data = df_filtered[df_filtered['symbol'] == symbol]
-        
-        # Calculate percentage change and cumulative change
-        symbol_data['price_change_pct'] = symbol_data['close'].pct_change().fillna(0)
-        symbol_data['cumulative_change'] = (1 + symbol_data['price_change_pct']).cumprod() - 1
+        symbol_data = df_filtered[df_filtered['symbol'] == symbol].copy()
+        symbol_data.loc[:,'price_change_pct'] = symbol_data['close'].pct_change().fillna(0) # Calculate percentage change and cumulative change
+        symbol_data.loc[:,'cumulative_change'] = (1 + symbol_data['price_change_pct']).cumprod() - 1
         
         # Add the symbol's cumulative change to the figure
         fig.add_trace(
@@ -140,7 +127,6 @@ def plot_cumulative_change(df_filtered, set_filtered_symbols, title=""):
     )
     return fig
 
-# Display filter buttons horizontally and update chart
 def display_buttons():
     button_labels = ["1m", "3m", "6m", "1y", "YTD", "All"]
     cols = st.columns(len(button_labels))
@@ -150,12 +136,16 @@ def display_buttons():
             
 df_merged, df_fon_table, symbol_attributes_df = fetch_data()
 
+lv_time_range = st.session_state.filter_label
+
 column_configuration_fon = {
     "symbol": st.column_config.TextColumn("Fon", help="Fon 3 haneli kod", width="small"),
     "title" : st.column_config.TextColumn("Unvan", help="Fonun Unvanı", width="large"),
-    "1m-F%" : st.column_config.NumberColumn("1m-F%", help="1 aylık fiyat değişimi", width="small", format="%.2d"),
-    "1m-YS%": st.column_config.NumberColumn("1m-YS%", help="1 aylık yatırımcı sayısı değişimi", width="small", format="%.2d"),
-    "1m-BY%": st.column_config.NumberColumn("1m-BY%", help="1 aylık yatırımcı başına yatırım tutarı değişimi", width="small", format="%.2d"),
+    f'{lv_time_range}-F%' : st.column_config.NumberColumn("1m-F%", help="Fiyat değişimi", width="small"),
+    f'{lv_time_range}-YS%': st.column_config.NumberColumn("1m-YS%", help="Yatırımcı sayısı değişimi", width="small"),
+    f'{lv_time_range}-YS' : st.column_config.NumberColumn("1m-YS", help="Güncel Yatırımcı sayısı", width="small"),
+    f'{lv_time_range}-BY%': st.column_config.NumberColumn("1m-BY%", help="Yatırımcı başına yatırım tutarı değişimi", width="small"),
+    f'{lv_time_range}-BY' : st.column_config.NumberColumn("1m-BY", help="Güncel Yatırımcı başına yatırım tutarı", width="small"),
 }
 
 col2, col3 = st.columns([6, 6])
@@ -175,49 +165,69 @@ with col2:
                 set_filtered_symbols.update(df_filtered_symbols)
 
             if set_filtered_symbols:
+                df_symbol_history_list = []
+                df_combined_symbol_metrics_list = []
+                lv_time_range = st.session_state.filter_label
+                
                 for symbol in set_filtered_symbols:
-                    lv_time_range = st.session_state.filter_label
-                    df_symbol_history = df_merged[(df_merged['symbol'] == symbol) & (df_merged['date'] >= filter_get_min_date(lv_time_range))]
-                    df_combined_symbol_history = pd.concat([df_combined_symbol_history, df_symbol_history], ignore_index=True)
-                    
+                    df_symbol_history = df_merged[(df_merged['symbol'] == symbol) & (df_merged['date'] >= filter_get_min_date(lv_time_range))].copy()
+                    df_symbol_history_list.append(df_symbol_history)
+
                     if not df_symbol_history.empty:
-                        df_symbol_history_sorted        = df_symbol_history.sort_values('date')
-                        start_close                     = df_symbol_history_sorted.iloc[0]['close']
-                        end_close                       = df_symbol_history_sorted.iloc[-1]['close']
-                        start_number_of_investors       = df_symbol_history_sorted.iloc[0]['number_of_investors']
-                        end_number_of_investors         = df_symbol_history_sorted.iloc[-1]['number_of_investors']
-                        start_market_cap_per_investors  = df_symbol_history_sorted.iloc[0]['market_cap_per_investors']
-                        end_market_cap_per_investors    = df_symbol_history_sorted.iloc[-1]['market_cap_per_investors']
-                        # Check for NaN or inf values
+                        df_symbol_history.sort_values('date', inplace=True)
+                        start_close                     = df_symbol_history.iloc[0]['close']
+                        end_close                       = df_symbol_history.iloc[-1]['close']
+                        start_number_of_investors       = df_symbol_history.iloc[0]['number_of_investors']
+                        end_number_of_investors         = df_symbol_history.iloc[-1]['number_of_investors']
+                        start_market_cap_per_investors  = df_symbol_history.iloc[0]['market_cap_per_investors']
+                        end_market_cap_per_investors    = df_symbol_history.iloc[-1]['market_cap_per_investors']
+
                         if pd.notnull(start_close) and pd.notnull(end_close) and start_close != 0:
                             change_price = (end_close - start_close) / start_close * 100
                         else:
-                            change_price = float('nan')  # or handle it as you need, e.g., change_price = 0
+                            change_price = float('nan') 
     
                         if pd.notnull(start_number_of_investors) and pd.notnull(end_number_of_investors) and start_number_of_investors != 0:
-                            change_number_of_investors = (end_number_of_investors - start_number_of_investors) / start_number_of_investors * 100
+                            change_number_of_investors_percent = (end_number_of_investors - start_number_of_investors) / start_number_of_investors * 100
+                            change_number_of_investors = (end_number_of_investors - start_number_of_investors) 
                         else:
+                            change_number_of_investors_percent = float('nan')
                             change_number_of_investors = float('nan')
     
                         if pd.notnull(start_market_cap_per_investors) and pd.notnull(end_market_cap_per_investors) and start_market_cap_per_investors != 0:
-                            change_market_cap_per_investors = (end_market_cap_per_investors - start_market_cap_per_investors) / start_market_cap_per_investors * 100
+                            change_market_cap_per_investors_percent = (end_market_cap_per_investors - start_market_cap_per_investors) / start_market_cap_per_investors * 100
+                            change_market_cap_per_investors = (end_market_cap_per_investors - start_market_cap_per_investors)
                         else:
+                            change_market_cap_per_investors_percent = float('nan')
                             change_market_cap_per_investors = float('nan')
                         
                         df_symbol_metrics = pd.DataFrame({
                             'symbol'              : [symbol],
-                            'title'               : [df_symbol_history_sorted.iloc[0]['title']],
-                            f'{lv_time_range}-F%' : round(change_price, 2),
-                            f'{lv_time_range}-YS%': round(change_number_of_investors, 2),
-                            f'{lv_time_range}-BY%': round(change_market_cap_per_investors, 2)
+                            'title'               : [df_symbol_history.iloc[0]['title']],
+                            f'{lv_time_range}-F%' : change_price,
+                            f'{lv_time_range}-YS%': change_number_of_investors_percent,
+                            f'{lv_time_range}-BY%': change_market_cap_per_investors_percent,
+                            f'{lv_time_range}-YS' : end_number_of_investors,
+                            f'{lv_time_range}-BY' : change_market_cap_per_investors
                         })
-                        df_combined_symbol_metrics = pd.concat([df_combined_symbol_metrics, df_symbol_metrics], ignore_index=True)
-                        
-                styled_df           = df_combined_symbol_metrics.style.map(lambda val: color_gradient(val, f'{lv_time_range}-F%'), subset=[f'{lv_time_range}-F%'])
-                styled_df           = styled_df.map(lambda val: color_gradient(val, f'{lv_time_range}-YS%'), subset=[f'{lv_time_range}-YS%'])
-                styled_df           = styled_df.map(lambda val: color_gradient(val, f'{lv_time_range}-BY%'), subset=[f'{lv_time_range}-BY%'])
-                selectable_symbols  = st.dataframe(styled_df, use_container_width=True, hide_index=True, on_select="rerun", selection_mode="multi-row", column_config=column_configuration_fon)
+                        df_combined_symbol_metrics_list.append(df_symbol_metrics) 
                 
+                df_combined_symbol_metrics = pd.concat(df_combined_symbol_metrics_list, ignore_index=True)
+                df_combined_symbol_metrics_list = None
+                df_combined_symbol_history = pd.concat(df_symbol_history_list, ignore_index=True)
+                df_symbol_history_list = None
+                
+                styled_df = df_combined_symbol_metrics.style
+                styled_df = styled_df.format({f'{lv_time_range}-F%': '{:.2f}', f'{lv_time_range}-YS%': '{:.2f}', f'{lv_time_range}-BY%': '{:.2f}', f'{lv_time_range}-YS': '{:,.0f}', f'{lv_time_range}-BY': '₺{:,.0f}' })
+                styled_df = styled_df.map(lambda val: color_gradient(val, f'{lv_time_range}-F%') if pd.notnull(val) else '', subset=[f'{lv_time_range}-F%'])
+                styled_df = styled_df.map(lambda val: color_gradient(val, f'{lv_time_range}-YS%') if pd.notnull(val) else '', subset=[f'{lv_time_range}-YS%'])
+                styled_df = styled_df.map(lambda val: color_gradient(val, f'{lv_time_range}-BY%') if pd.notnull(val) else '', subset=[f'{lv_time_range}-BY%'])
+                styled_df = styled_df.map(lambda val: color_gradient(val, f'{lv_time_range}-YS') if pd.notnull(val) else '', subset=[f'{lv_time_range}-YS'])
+                styled_df = styled_df.map(lambda val: color_gradient(val, f'{lv_time_range}-BY') if pd.notnull(val) else '', subset=[f'{lv_time_range}-BY'])
+
+                selectable_symbols  = st.dataframe(styled_df, use_container_width=True, hide_index=True, height=800, on_select="rerun", selection_mode="multi-row", column_config=column_configuration_fon)
+                styled_df = None
+
                 set_filtered_symbols.clear()
                 for selected_symbol in selectable_symbols.selection.rows:
                     symbol_value = df_combined_symbol_metrics.loc[selected_symbol]['symbol']
@@ -228,4 +238,3 @@ with col3:
         chart_placeholder = st.empty()
         if set_filtered_symbols :
             chart_placeholder.plotly_chart(plot_cumulative_change(df_combined_symbol_history, set_filtered_symbols))
-

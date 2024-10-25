@@ -15,11 +15,20 @@ else:
 if df_fon_table.empty:
     st.stop()
 
+if 'prompt_number_of_lines' in st.session_state :
+    prompt_number_of_lines = st.session_state.prompt_number_of_lines  
+else : 
+    prompt_number_of_lines = 10
+
 unique_symbols = sorted(df_fon_table['symbol'].unique().tolist())
 
-# Load tefas_transformed.csv for unit prices
-df_tefas = pd.read_csv('data/tefas_transformed.csv')
-df_tefas['date'] = pd.to_datetime(df_tefas['date'])
+if os.path.exists('data/tefas_transformed.csv') :
+    if 'df_transformed' in st.session_state :
+        df_transformed = st.session_state.df_transformed 
+    else : 
+        df_transformed = pd.read_csv('data/tefas_transformed.csv')
+        df_transformed['date'] = pd.to_datetime(df_transformed['date'])
+        st.session_state.df_transformed = df_transformed
 
 # Define a function to load portfolio data or create an empty DataFrame
 def load_portfolio():
@@ -28,43 +37,25 @@ def load_portfolio():
         
         # Fill missing values in 'quantity' column with 0 before casting to integer
         return_df['quantity'] = pd.to_numeric(return_df['quantity'], errors='coerce').fillna(0).astype(int)
-        
-        return_df['date'] = pd.to_datetime(return_df['date'], errors='coerce')  # Convert date to datetime
+        return_df['date']     = pd.to_datetime(return_df['date'], errors='coerce')  # Convert date to datetime
         
         # Merge portfolio with tefas price data on 'symbol' and 'date'
-        merged_df = pd.merge(return_df, df_tefas[['symbol', 'date', 'close']],
-                             on=['symbol', 'date'], how='left')
+        merged_df = pd.merge(return_df, df_transformed[['symbol', 'date', 'close']], on=['symbol', 'date'], how='left')
         merged_df.rename(columns={'close': 'price'}, inplace=True)
         return merged_df
     else:
         # Create an empty DataFrame with predefined columns
         return pd.DataFrame(columns=['symbol', 'date', 'transaction_type', 'quantity', 'price'])
 
-# Load the portfolio data
-if 'df_portfolio' not in st.session_state:
-    st.session_state.df_portfolio = load_portfolio()
+df_portfolio = load_portfolio()
+df_portfolio = df_portfolio[df_portfolio.quantity != 0]
 
-df_portfolio = st.session_state.df_portfolio
-
-# Check if the portfolio is empty and set up initial DataFrame
-if df_portfolio.empty:
-    df_portfolio = pd.DataFrame({
-        "symbol": [""],  # Empty cell for user input
-        "date": [datetime.today().date()],  # Default to today's date
-        "transaction_type": [""],  # Empty cell for selection
-        "quantity": [0],  # Empty cell for user input
-        "price": [0],  # Empty cell for user input
-    })
+if df_portfolio.empty:  # Check if the portfolio is empty and set up initial DataFrame
+    df_portfolio = pd.DataFrame({"symbol": [""], "date": [datetime.today().date()], "transaction_type": [""], "quantity": [0], "price": [0],})
 else:
-    # Add an extra empty line if the portfolio is not empty
-    empty_row = pd.DataFrame({
-        "symbol": [""],
-        "date": [datetime.today().date()],  # Today's date
-        "transaction_type": [""],
-        "quantity": [0],
-        "price": [0],
-    })
-    df_portfolio = pd.concat([df_portfolio, empty_row], ignore_index=True)
+    empty_row = pd.DataFrame({"symbol": [""], "date": [""], "transaction_type": [""], "quantity": [0], "price": [0],})
+    for _ in range(prompt_number_of_lines): # Add five extra empty lines if the portfolio is not empty
+        df_portfolio = pd.concat([df_portfolio, empty_row], ignore_index=True)
 
 # Ensure the date column is treated as datetime for the data editor
 df_portfolio['date'] = pd.to_datetime(df_portfolio['date'], errors='coerce')
@@ -81,25 +72,28 @@ col2, col3 = st.columns([1, 2])
 
 with col2:
     st.title("İşlemler")
-    
-    # Create the data editor with validation
-    dataframe_height = (len(df_portfolio) + 1) * 35 + 2
-    edited_df = st.data_editor(df_portfolio, column_config=column_config, hide_index=True, height=dataframe_height, use_container_width=True)
-    edited_df = edited_df[edited_df['symbol'] != ""]
 
-    # Store the edited DataFrame in session state (instead of refreshing the page)
-    st.session_state.edited_df = edited_df
+    # Wrap data editor and save button in a form
+    with st.form(key="portfolio_form"):
+        # Display data editor within the form
+        prompt_number_of_lines = st.number_input("Boş Satır Sayısı:", min_value=0, step=1, value=prompt_number_of_lines)
+        st.session_state.prompt_number_of_lines = prompt_number_of_lines
 
-    # Save button to store the data
-    if st.button('Sakla'):
-        # Convert the date column back to datetime format before saving
-        edited_df['date'] = pd.to_datetime(edited_df['date'], errors='coerce')
-        columns_to_save = ['symbol', 'date', 'transaction_type', 'quantity']
-        filtered_df = edited_df[columns_to_save]
+        save_button = st.form_submit_button("Sakla") # Submit button
+
+        dataframe_height = (len(df_portfolio) + 1) * 35 + 2
+        edited_df = st.data_editor(df_portfolio, column_config=column_config, hide_index=True, height=dataframe_height, use_container_width=True,)
+        edited_df = edited_df[edited_df['symbol'] != ""]
         
-        if not edited_df.empty:  # Only save if there are valid entries
-            filtered_df.to_csv('data/myportfolio.csv', index=False)
-            st.success("Portfolio saved successfully!")
-            st.rerun()  # Refresh the page only after saving
-        else:
-            st.warning("No valid entries to save.")
+        if save_button: # Check if save button is clicked
+            # Convert date column back to datetime
+            edited_df['date'] = pd.to_datetime(edited_df['date'], errors='coerce')
+            columns_to_save = ['symbol', 'date', 'transaction_type', 'quantity']
+            filtered_df = edited_df[columns_to_save]
+            
+            if not edited_df.empty:
+                filtered_df.to_csv('data/myportfolio.csv', index=False) # Save to CSV
+                st.success("Portfolio saved successfully!")
+                st.rerun()
+            else:
+                st.warning("No valid entries to save.")
