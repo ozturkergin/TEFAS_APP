@@ -51,10 +51,10 @@ df_portfolio = df_portfolio[df_portfolio.quantity != 0]
 
 if df_portfolio.empty:  # Check if the portfolio is empty and set up initial DataFrame
     df_portfolio = pd.DataFrame({"symbol": [""], "date": [datetime.today().date()], "transaction_type": [""], "quantity": [0], "price": [0],})
-else:
-    empty_row = pd.DataFrame({"symbol": [""], "date": [""], "transaction_type": [""], "quantity": [0], "price": [0],})
-    for _ in range(prompt_number_of_lines): # Add five extra empty lines if the portfolio is not empty
-        df_portfolio = pd.concat([df_portfolio, empty_row], ignore_index=True)
+
+empty_row = pd.DataFrame({"symbol": [""], "date": [""], "transaction_type": [""], "quantity": [0], "price": [0],})
+for _ in range(prompt_number_of_lines): # Add five extra empty lines if the portfolio is not empty
+    df_portfolio = pd.concat([df_portfolio, empty_row], ignore_index=True)
 
 # Ensure the date column is treated as datetime for the data editor
 df_portfolio['date'] = pd.to_datetime(df_portfolio['date'], errors='coerce')
@@ -89,10 +89,11 @@ with col2:
             edited_df['date'] = pd.to_datetime(edited_df['date'], errors='coerce')
             columns_to_save = ['symbol', 'date', 'transaction_type', 'quantity']
             filtered_df = edited_df[columns_to_save]
-            
+
             if not edited_df.empty:
                 filtered_df.to_csv('data/myportfolio.csv', index=False) # Save to CSV
                 st.success("Portfolio saved successfully!")
-                st.rerun()
             else:
                 st.warning("No valid entries to save.")
+            
+            st.rerun()

@@ -8,7 +8,7 @@ matplotlib
 scikit-learn
 pandas 
 Cython  
-tensorflow 
+seaborn
 plotly 
 nbformat 
 prophet
