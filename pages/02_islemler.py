@@ -88,10 +88,14 @@ with col2:
             # Convert date column back to datetime
             edited_df['date'] = pd.to_datetime(edited_df['date'], errors='coerce')
             columns_to_save = ['symbol', 'date', 'transaction_type', 'quantity']
-            filtered_df = edited_df[columns_to_save]
+            myportfolio = edited_df[columns_to_save]
 
             if not edited_df.empty:
-                filtered_df.to_csv('data/myportfolio.csv', index=False) # Save to CSV
+                myportfolio.to_csv('data/myportfolio.csv', index=False) # Save to CSV
+                myportfolio['quantity'] = pd.to_numeric(myportfolio['quantity'], errors='coerce').fillna(0).astype(int)
+                myportfolio['date'] = pd.to_datetime(myportfolio['date'], errors='coerce')  # Convert date to datetime
+                myportfolio = myportfolio[myportfolio.quantity != 0]
+                st.session_state.myportfolio = myportfolio
                 st.success("Portfolio saved successfully!")
             else:
                 st.warning("No valid entries to save.")
