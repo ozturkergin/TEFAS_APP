@@ -171,7 +171,11 @@ with col2:
 
         if show_portfolio:
             if 'myportfolio' in st.session_state :
-                set_filtered_symbols.update(st.session_state.myportfolio['symbol'].unique().tolist())
+                myportfolio_summarized = ( st.session_state.myportfolio
+                .groupby('symbol', as_index=False)                              
+                .apply(lambda df: pd.Series({'net_quantity': df.loc[df['transaction_type'] == 'buy', 'quantity'].sum() - df.loc[df['transaction_type'] == 'sell', 'quantity'].sum()}))
+                .query('net_quantity != 0') )  # Keep only symbols with non-zero net quantity  
+                set_filtered_symbols.update(myportfolio_summarized['symbol'].unique().tolist())
 
         if not filtered_attributes.empty or set_filtered_symbols:
             df_symbol_history_list = []
