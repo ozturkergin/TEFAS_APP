@@ -80,8 +80,8 @@ if os.path.exists('data/myportfolio.csv') :
         myportfolio = myportfolio[myportfolio.quantity != 0]
         st.session_state.myportfolio = myportfolio
 
-if os.path.exists('data/favorites.csv'):
-    if 'favorites' not in st.session_state :
-        st.session_state.favorites = pd.read_csv('data/favorites.csv')['symbol'].tolist()
+if os.path.exists('data/favourites.csv'):
+    if 'favourites' not in st.session_state :
+        st.session_state.favourites = pd.read_csv('data/favourites.csv')
 
 pg.run()
