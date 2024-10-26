@@ -80,22 +80,6 @@ def color_gradient(val, column_name):
     color = sns.color_palette("RdYlGn", as_cmap=True)(norm_val)
     return f'background-color: rgba{tuple(int(c * 255) for c in color[:3])}'
 
-def filter_by_date_range(range_type):
-    max_date = df_merged['date'].max()
-    if range_type == "1m":
-        min_date = max_date - pd.DateOffset(days=30)
-    elif range_type == "3m":
-        min_date = max_date - pd.DateOffset(days=90)
-    elif range_type == "6m":
-        min_date = max_date - pd.DateOffset(days=180)
-    elif range_type == "1y":
-        min_date = max_date - pd.DateOffset(years=1)
-    elif range_type == "YTD":
-        min_date = pd.Timestamp(f"{max_date.year}-01-01")
-    else:
-        min_date = df_merged['date'].min()
-    return df_merged[(df_merged['date'] >= min_date) & (df_merged['date'] <= max_date)]
-
 # Cumulative change plot function
 def plot_cumulative_change(df_filtered, set_filtered_symbols, title=""):
     fig = go.Figure()
