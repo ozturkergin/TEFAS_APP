@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 import os
 from prophet import Prophet
 
-symbol_attributes_df = pd.DataFrame()
+# symbol_attributes_df = pd.DataFrame()
 set_filtered_symbols = set()
 
 # Turkish sorting function
@@ -31,10 +31,10 @@ def fetch_data():
             df_transformed['date'] = pd.to_datetime(df_transformed['date'])
             st.session_state.df_transformed = df_transformed
 
-    symbol_attributes_of_fon_table = [col for col in df_fon_table.columns if col.startswith('symbol_')]
-    symbol_attributes_list = np.array([col.replace('symbol_', '') for col in symbol_attributes_of_fon_table])
-    symbol_attributes_list = sorted(symbol_attributes_list, key=turkish_sort)
-    symbol_attributes_df = pd.DataFrame({'Fon Unvan Türü': symbol_attributes_list})
+    # symbol_attributes_of_fon_table = [col for col in df_fon_table.columns if col.startswith('symbol_')]
+    # symbol_attributes_list = np.array([col.replace('symbol_', '') for col in symbol_attributes_of_fon_table])
+    # symbol_attributes_list = sorted(symbol_attributes_list, key=turkish_sort)
+    # symbol_attributes_df = pd.DataFrame({'Fon Unvan Türü': symbol_attributes_list})
 
     if 'df_merged' in st.session_state:
         df_merged = st.session_state.df_merged
@@ -59,10 +59,6 @@ selected_symbols = st.multiselect(
 with st.sidebar:
     with st.container():
         prompt_number_of_days_to_predict = st.number_input("Gelecek Kaç Gözlem Tahminlenmeli:", min_value=0, step=1, value=30)
-        if 'prompt_number_of_days_to_predict' in st.session_state :
-            prompt_number_of_days_to_predict = st.session_state.prompt_number_of_days_to_predict  
-        else : 
-            st.session_state.prompt_number_of_days_to_predict = prompt_number_of_days_to_predict 
         show_favourites = st.checkbox("Favoriler")
         show_portfolio = st.checkbox("Portföyüm")
 
@@ -88,10 +84,10 @@ for symbol in set_filtered_symbols:
     model = Prophet()    # Prophet model
     model.fit(data)
 
-    future = model.make_future_dataframe(periods=st.session_state.prompt_number_of_days_to_predict)    # Prediction with x days into the future
+    future = model.make_future_dataframe(periods=prompt_number_of_days_to_predict)    # Prediction with x days into the future
     forecast = model.predict(future)
 
-    future_x_days = forecast[['ds', 'yhat']].tail(st.session_state.prompt_number_of_days_to_predict)    # Select the last x days of predictions for display
+    future_x_days = forecast[['ds', 'yhat']].tail(prompt_number_of_days_to_predict)    # Select the last x days of predictions for display
     future_x_days.rename(columns={'ds': 'Date', 'yhat': 'Predicted Close'}, inplace=True)
 
     last_actual_price = data['y'].iloc[-1]    # Calculate the percentage change between the last actual close and the predicted latest close
@@ -104,7 +100,7 @@ for symbol in set_filtered_symbols:
         fig.add_trace(go.Scatter(x=forecast['ds'], y=forecast['yhat'], mode='lines', name='Full Prediction', line=dict(color='blue', dash='dash')))        # Add full prediction range in a single color
 
         # Overlay final x days in a different color
-        fig.add_trace(go.Scatter(x=forecast['ds'][-st.session_state.prompt_number_of_days_to_predict:], y=forecast['yhat'][-st.session_state.prompt_number_of_days_to_predict:], mode='lines', name=f'{st.session_state.prompt_number_of_days_to_predict}-Day Future Prediction', line=dict(color='red')))
+        fig.add_trace(go.Scatter(x=forecast['ds'][-prompt_number_of_days_to_predict:], y=forecast['yhat'][-prompt_number_of_days_to_predict:], mode='lines', name=f'{prompt_number_of_days_to_predict}-Day Future Prediction', line=dict(color='red')))
 
         # Update layout for clarity
         fig.update_layout(
@@ -117,7 +113,7 @@ for symbol in set_filtered_symbols:
 
         with col1:            # Display percentage change in a card
             st.metric(
-                label=f"{st.session_state.prompt_number_of_days_to_predict}-Day Future Prediction Change for {symbol}",
+                label=f"{prompt_number_of_days_to_predict}-Day Future Prediction Change for {symbol}",
                 value=f"{percentage_change:.2f}%",
                 delta=round(percentage_change, 2),
                 delta_color="normal"
