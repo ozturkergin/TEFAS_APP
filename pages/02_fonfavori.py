@@ -17,7 +17,8 @@ symbol_titles = df_fon_table.set_index('symbol')['title'].to_dict()
 # Function to load favourites
 def load_favourites(favourites_file='data/favourites.csv'):
     if os.path.exists(favourites_file):
-        return pd.read_csv(favourites_file)['symbol']
+        return pd.read_csv(favourites_file)['symbol'].tolist()  # Return as list
+    return []  # Return empty list if file doesn't exist
 
 # Initialize favourites in session state
 if 'favourites' not in st.session_state:

@@ -167,7 +167,7 @@ with col2:
 
         if show_favourites:
             if 'favourites' in st.session_state :
-                set_filtered_symbols.update(st.session_state.favourites['symbol'].unique().tolist())
+                set_filtered_symbols.update(st.session_state.favourites)
 
         if show_portfolio:
             if 'myportfolio' in st.session_state :
