@@ -21,7 +21,7 @@ islemler_page = st.Page(
 portfoy_page = st.Page(
     "pages/02_portfoy.py",
     title="Portföy Analizi",
-    icon=":material/data_thresholding:",
+    icon=":material/token:",
 )
 entegrasyon_page = st.Page(
     "pages/03_entegrasyon.py",
@@ -33,12 +33,18 @@ fonfavori_page = st.Page(
     title="Favorileri Yönet",
     icon=":material/book:",
 )
+tahmin_page = st.Page(
+    "pages/04_tahmin.py",
+    title="Tahmin",
+    icon=":material/data_thresholding:",
+)
 
 pg = st.navigation(
     {
         "Analiz": [home_page, analiz_page],
         "Entegrasyon": [entegrasyon_page],
         "Portföy": [islemler_page, portfoy_page, fonfavori_page],
+        "Forecast": [tahmin_page],
     }, 
     position="sidebar"
 )
