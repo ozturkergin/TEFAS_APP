@@ -80,6 +80,25 @@ def color_gradient(val, column_name):
     color = sns.color_palette("RdYlGn", as_cmap=True)(norm_val)
     return f'background-color: rgba{tuple(int(c * 255) for c in color[:3])}'
 
+def RSI_gradient(val):
+    if pd.isna(val) or np.isinf(val):  # Handle NaN and inf values
+        return ''
+
+    if val < 40:  # Values below 40 should be green with a star sign
+        norm_val = val / 40  # Normalize in [0, 1] range for green gradient
+        color = sns.color_palette("Greens", as_cmap=True)(norm_val)
+        return f'background-color: rgba{tuple(int(c * 255) for c in color[:3])}; color: white; font-weight: bold;'
+    
+    elif val > 70:  # Values above 70 should be red
+        norm_val = (val - 40) / 30  # Normalize in [0, 1] range for gradient
+        color = sns.color_palette("RdYlGn", as_cmap=True)(1 - norm_val)  # Green to Red gradient
+        return f'background-color: rgba{tuple(int(c * 255) for c in color[:3])}; color: white; font-weight: bold;'
+    
+    else:  # Values between 40 and 70 should transition from green to red
+        norm_val = (val - 40) / 30  # Normalize in [0, 1] range for gradient
+        color = sns.color_palette("RdYlGn", as_cmap=True)(1 - norm_val)  # Green to Red gradient
+        return f'background-color: rgba{tuple(int(c * 255) for c in color[:3])}; color: black; font-weight: normal;'
+
 # Cumulative change plot function
 def plot_cumulative_change(df_filtered, set_filtered_symbols, title=""):
     fig = go.Figure()
@@ -127,16 +146,17 @@ df_merged, df_fon_table, symbol_attributes_df = fetch_data()
 lv_time_range = st.session_state.filter_label
 
 column_configuration_fon = {
-    "symbol": st.column_config.TextColumn("Fon", help="Fon 3 haneli kod", width="small"),
-    "title" : st.column_config.TextColumn("Unvan", help="Fonun Unvanı", width="large"),
+    "symbol"              : st.column_config.TextColumn("Fon", help="Fon 3 haneli kod", width="small"),
+    "title"               : st.column_config.TextColumn("Unvan", help="Fonun Unvanı", width="large"),
     f'{lv_time_range}-F%' : st.column_config.NumberColumn("1m-F%", help="Fiyat değişimi", width="small"),
     f'{lv_time_range}-YS%': st.column_config.NumberColumn("1m-YS%", help="Yatırımcı sayısı değişimi", width="small"),
     f'{lv_time_range}-YS' : st.column_config.NumberColumn("1m-YS", help="Güncel Yatırımcı sayısı", width="small"),
     f'{lv_time_range}-BY%': st.column_config.NumberColumn("1m-BY%", help="Yatırımcı başına yatırım tutarı değişimi", width="small"),
     f'{lv_time_range}-BY' : st.column_config.NumberColumn("1m-BY", help="Güncel Yatırımcı başına yatırım tutarı", width="small"),
+    f'RSI-14'             : st.column_config.NumberColumn("RSI-14", help="Güncel RSI", width="small"),
 }
 
-col2, col3 = st.columns([6, 6])
+col2, col3 = st.columns([7, 6])
 
 with st.sidebar:
     with st.container():
@@ -183,6 +203,7 @@ with col2:
                     end_number_of_investors         = df_symbol_history.iloc[-1]['number_of_investors']
                     start_market_cap_per_investors  = df_symbol_history.iloc[0]['market_cap_per_investors']
                     end_market_cap_per_investors    = df_symbol_history.iloc[-1]['market_cap_per_investors']
+                    rsi_14                          = df_symbol_history.iloc[0]['RSI_14']
 
                     if pd.notnull(start_close) and pd.notnull(end_close) and start_close != 0:
                         change_price = (end_close - start_close) / start_close * 100
@@ -210,7 +231,8 @@ with col2:
                         f'{lv_time_range}-YS%': change_number_of_investors_percent,
                         f'{lv_time_range}-BY%': change_market_cap_per_investors_percent,
                         f'{lv_time_range}-YS' : end_number_of_investors,
-                        f'{lv_time_range}-BY' : change_market_cap_per_investors
+                        f'{lv_time_range}-BY' : change_market_cap_per_investors,
+                        f'RSI-14'             : rsi_14
                     })
                     df_combined_symbol_metrics_list.append(df_symbol_metrics) 
             
@@ -220,12 +242,13 @@ with col2:
             df_symbol_history_list = None
             
             styled_df = df_combined_symbol_metrics.style
-            styled_df = styled_df.format({f'{lv_time_range}-F%': '{:.2f}', f'{lv_time_range}-YS%': '{:.2f}', f'{lv_time_range}-BY%': '{:.2f}', f'{lv_time_range}-YS': '{:,.0f}', f'{lv_time_range}-BY': '₺{:,.0f}' })
+            styled_df = styled_df.format({f'{lv_time_range}-F%': '{:.2f}', f'{lv_time_range}-YS%': '{:.2f}', f'{lv_time_range}-BY%': '{:.2f}', f'{lv_time_range}-YS': '{:,.0f}', f'{lv_time_range}-BY': '₺{:,.0f}' , 'RSI-14': '{:,.2f}' })
             styled_df = styled_df.map(lambda val: color_gradient(val, f'{lv_time_range}-F%') if pd.notnull(val) else '', subset=[f'{lv_time_range}-F%'])
             styled_df = styled_df.map(lambda val: color_gradient(val, f'{lv_time_range}-YS%') if pd.notnull(val) else '', subset=[f'{lv_time_range}-YS%'])
             styled_df = styled_df.map(lambda val: color_gradient(val, f'{lv_time_range}-BY%') if pd.notnull(val) else '', subset=[f'{lv_time_range}-BY%'])
             styled_df = styled_df.map(lambda val: color_gradient(val, f'{lv_time_range}-YS') if pd.notnull(val) else '', subset=[f'{lv_time_range}-YS'])
             styled_df = styled_df.map(lambda val: color_gradient(val, f'{lv_time_range}-BY') if pd.notnull(val) else '', subset=[f'{lv_time_range}-BY'])
+            styled_df = styled_df.map(lambda val: RSI_gradient(val) if pd.notnull(val) else '', subset=['RSI-14'])
 
             selectable_symbols  = st.dataframe(styled_df, use_container_width=True, hide_index=True, height=800, on_select="rerun", selection_mode="multi-row", column_config=column_configuration_fon)
             styled_df = None
