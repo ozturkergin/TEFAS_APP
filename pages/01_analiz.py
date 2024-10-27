@@ -203,7 +203,7 @@ with col2:
                     end_number_of_investors         = df_symbol_history.iloc[-1]['number_of_investors']
                     start_market_cap_per_investors  = df_symbol_history.iloc[0]['market_cap_per_investors']
                     end_market_cap_per_investors    = df_symbol_history.iloc[-1]['market_cap_per_investors']
-                    rsi_14                          = df_symbol_history.iloc[0]['RSI_14']
+                    rsi_14                          = df_symbol_history.iloc[-1]['RSI_14']
 
                     if pd.notnull(start_close) and pd.notnull(end_close) and start_close != 0:
                         change_price = (end_close - start_close) / start_close * 100
