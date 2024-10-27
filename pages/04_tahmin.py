@@ -31,11 +31,6 @@ def fetch_data():
             df_transformed['date'] = pd.to_datetime(df_transformed['date'])
             st.session_state.df_transformed = df_transformed
 
-    # symbol_attributes_of_fon_table = [col for col in df_fon_table.columns if col.startswith('symbol_')]
-    # symbol_attributes_list = np.array([col.replace('symbol_', '') for col in symbol_attributes_of_fon_table])
-    # symbol_attributes_list = sorted(symbol_attributes_list, key=turkish_sort)
-    # symbol_attributes_df = pd.DataFrame({'Fon Unvan Türü': symbol_attributes_list})
-
     if 'df_merged' in st.session_state:
         df_merged = st.session_state.df_merged
     else:
@@ -50,9 +45,9 @@ unique_symbols = sorted(df_fon_table['symbol'].unique().tolist())
 
 # Multiselect with unique symbols
 selected_symbols = st.multiselect(
-    'Select Symbols:',
+    'Fon:',
     unique_symbols,
-    default=unique_symbols[0] if unique_symbols else None,
+    default=None,
     key='selected_symbols'
 )
 
@@ -78,6 +73,7 @@ with st.sidebar:
 
 for symbol in set_filtered_symbols:
     data = df_merged[df_merged['symbol'] == symbol]
+    title = data.iloc[0]['title']
     data = data[['date', 'close']].copy()
     data.rename(columns={'date': 'ds', 'close': 'y'}, inplace=True)
 
@@ -94,17 +90,17 @@ for symbol in set_filtered_symbols:
     predicted_latest_price = future_x_days['Predicted Close'].iloc[-1]
     percentage_change = ((predicted_latest_price - last_actual_price) / last_actual_price) * 100
 
-    with st.expander(f"Prediction Results for {symbol}", expanded=True):
+    with st.expander(f"{symbol} - {title}", expanded=True):
         fig = go.Figure()        # Create Plotly figure
         fig.add_trace(go.Scatter(x=data['ds'], y=data['y'], mode='lines', name='Past Close'))        # Add historical data
         fig.add_trace(go.Scatter(x=forecast['ds'], y=forecast['yhat'], mode='lines', name='Full Prediction', line=dict(color='blue', dash='dash')))        # Add full prediction range in a single color
 
         # Overlay final x days in a different color
         fig.add_trace(go.Scatter(x=forecast['ds'][-prompt_number_of_days_to_predict:], y=forecast['yhat'][-prompt_number_of_days_to_predict:], mode='lines', name=f'{prompt_number_of_days_to_predict}-Day Future Prediction', line=dict(color='red')))
-
+        
         # Update layout for clarity
         fig.update_layout(
-            title=f'Close Price Prediction for {symbol}',
+            title=f'Tahmin: {symbol} - {title}',
             xaxis_title='Date',
             yaxis_title='Close Price',
             xaxis=dict(rangeslider=dict(visible=True), type="date")
@@ -113,7 +109,7 @@ for symbol in set_filtered_symbols:
 
         with col1:            # Display percentage change in a card
             st.metric(
-                label=f"{prompt_number_of_days_to_predict}-Day Future Prediction Change for {symbol}",
+                label=f"{prompt_number_of_days_to_predict}-Günlük Tahmin: {symbol}",
                 value=f"{percentage_change:.2f}%",
                 delta=round(percentage_change, 2),
                 delta_color="normal"
