@@ -162,6 +162,8 @@ with st.sidebar:
     with st.container():
         show_favourites = st.checkbox("Favoriler")
         show_portfolio = st.checkbox("Portföyüm")
+        no_show_ozel = st.checkbox("Özel Hariç", value=True)
+        no_show_serbest = st.checkbox("Serbest Hariç", value=True)
         selectable_attributes = st.dataframe(symbol_attributes_df, use_container_width=True, hide_index=True, on_select="rerun", selection_mode="multi-row")
         filtered_attributes   = symbol_attributes_df.loc[selectable_attributes.selection.rows]
 
@@ -190,6 +192,12 @@ with col2:
                 for filtered_attribute in filtered_attributes['Fon Unvan Türü']:
                     df_filtered_symbols = df_merged[df_merged[f'symbol_{filtered_attribute}'] == True]['symbol'].unique().tolist()
                     set_filtered_symbols.update(df_filtered_symbols)
+                if no_show_ozel: 
+                    df_ozel_symbols = df_merged[df_merged[f'symbol_Özel'] == True]['symbol'].unique().tolist()
+                    set_filtered_symbols.difference_update(df_ozel_symbols)
+                if no_show_serbest: 
+                    df_serbest_symbols = df_merged[df_merged[f'symbol_Serbest'] == True]['symbol'].unique().tolist()
+                    set_filtered_symbols.difference_update(df_serbest_symbols)
 
             for symbol in set_filtered_symbols:
                 df_symbol_history = df_merged[(df_merged['symbol'] == symbol) & (df_merged['date'] >= filter_get_min_date(lv_time_range))].copy()
@@ -236,9 +244,18 @@ with col2:
                     })
                     df_combined_symbol_metrics_list.append(df_symbol_metrics) 
             
-            df_combined_symbol_metrics = pd.concat(df_combined_symbol_metrics_list, ignore_index=True)
+            if df_combined_symbol_metrics_list:  
+                df_combined_symbol_metrics = pd.concat(df_combined_symbol_metrics_list, ignore_index=True)
+            else:
+                df_combined_symbol_metrics = pd.DataFrame()
+    
             df_combined_symbol_metrics_list = None
-            df_combined_symbol_history = pd.concat(df_symbol_history_list, ignore_index=True)
+
+            if df_symbol_history_list:  
+                df_combined_symbol_history = pd.concat(df_symbol_history_list, ignore_index=True)
+            else:
+                df_combined_symbol_history = pd.DataFrame()
+
             df_symbol_history_list = None
             
             styled_df = df_combined_symbol_metrics.style
@@ -250,13 +267,15 @@ with col2:
             styled_df = styled_df.map(lambda val: color_gradient(val, f'{lv_time_range}-BY') if pd.notnull(val) else '', subset=[f'{lv_time_range}-BY'])
             styled_df = styled_df.map(lambda val: RSI_gradient(val) if pd.notnull(val) else '', subset=['RSI-14'])
 
-            selectable_symbols  = st.dataframe(styled_df, use_container_width=True, hide_index=True, height=800, on_select="rerun", selection_mode="multi-row", column_config=column_configuration_fon)
-            styled_df = None
+            if not df_combined_symbol_metrics.empty:
+                selectable_symbols = st.dataframe(styled_df, use_container_width=True, hide_index=True, height=800, on_select="rerun", selection_mode="multi-row", column_config=column_configuration_fon)
+            
+                styled_df = None
 
-            set_filtered_symbols.clear()
-            for selected_symbol in selectable_symbols.selection.rows:
-                symbol_value = df_combined_symbol_metrics.loc[selected_symbol]['symbol']
-                set_filtered_symbols.update([symbol_value]) 
+                set_filtered_symbols.clear()
+                for selected_symbol in selectable_symbols.selection.rows:
+                    symbol_value = df_combined_symbol_metrics.loc[selected_symbol]['symbol']
+                    set_filtered_symbols.update([symbol_value]) 
                     
 with col3:
     with st.container():
