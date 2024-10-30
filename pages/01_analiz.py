@@ -204,9 +204,12 @@ with col2:
                 df_symbol_history_list.append(df_symbol_history)
 
                 if not df_symbol_history.empty:
-                    df_symbol_history.sort_values('date', inplace=True)
-                    start_close                     = df_symbol_history.iloc[0]['close']
+                    df_symbol_history.sort_values('date', inplace=True, ascending=True)
                     end_close                       = df_symbol_history.iloc[-1]['close']
+                    if end_close == 0 : 
+                        continue
+
+                    start_close                     = df_symbol_history.iloc[0]['close']
                     start_number_of_investors       = df_symbol_history.iloc[0]['number_of_investors']
                     end_number_of_investors         = df_symbol_history.iloc[-1]['number_of_investors']
                     start_market_cap_per_investors  = df_symbol_history.iloc[0]['market_cap_per_investors']
@@ -256,6 +259,7 @@ with col2:
             else:
                 df_combined_symbol_history = pd.DataFrame()
 
+            df_symbol_history = None
             df_symbol_history_list = None
             
             styled_df = df_combined_symbol_metrics.style
