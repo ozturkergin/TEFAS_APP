@@ -55,7 +55,7 @@ if 'filter_label' not in st.session_state:
 def filter_get_min_date(range_type):
     max_date = df_merged['date'].max()
     if range_type == "1m":
-        min_date = max_date - pd.DateOffset(days=30)
+        min_date = max_date - pd.DateOffset(months=1)
     elif range_type == "3m":
         min_date = max_date - pd.DateOffset(months=3)
     elif range_type == "6m":
