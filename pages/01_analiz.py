@@ -245,7 +245,7 @@ with col2:
                         f'{lv_time_range}-YS%': change_number_of_investors_percent,
                         f'{lv_time_range}-BY%': change_market_cap_per_investors_percent,
                         f'{lv_time_range}-YS' : end_number_of_investors,
-                        f'{lv_time_range}-BY' : change_market_cap_per_investors,
+                        f'{lv_time_range}-BY' : end_market_cap_per_investors,
                         f'RSI-14'             : rsi_14
                     })
                     df_combined_symbol_metrics_list.append(df_symbol_metrics) 
