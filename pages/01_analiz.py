@@ -148,15 +148,16 @@ lv_time_range = st.session_state.filter_label
 column_configuration_fon = {
     "symbol"              : st.column_config.TextColumn("Fon", help="Fon 3 haneli kod", width="small"),
     "title"               : st.column_config.TextColumn("Unvan", help="Fonun Unvanı", width="large"),
-    f'{lv_time_range}-F%' : st.column_config.NumberColumn("1m-F%", help="Fiyat değişimi", width="small"),
-    f'{lv_time_range}-YS%': st.column_config.NumberColumn("1m-YS%", help="Yatırımcı sayısı değişimi", width="small"),
-    f'{lv_time_range}-YS' : st.column_config.NumberColumn("1m-YS", help="Güncel Yatırımcı sayısı", width="small"),
-    f'{lv_time_range}-BY%': st.column_config.NumberColumn("1m-BY%", help="Yatırımcı başına yatırım tutarı değişimi", width="small"),
-    f'{lv_time_range}-BY' : st.column_config.NumberColumn("1m-BY", help="Güncel Yatırımcı başına yatırım tutarı", width="small"),
-    f'RSI-14'             : st.column_config.NumberColumn("RSI-14", help="Güncel RSI", width="small"),
+    f'{lv_time_range}-F%' : st.column_config.NumberColumn(f'{lv_time_range}-F%', help="Fiyat değişimi", width="small"),
+    f'{lv_time_range}-YS%': st.column_config.NumberColumn(f'{lv_time_range}-YS%', help="Yatırımcı sayısı değişimi", width="small"),
+    f'{lv_time_range}-YS' : st.column_config.NumberColumn(f'{lv_time_range}-YS', help="Güncel Yatırımcı sayısı", width="small"),
+    f'{lv_time_range}-BY%': st.column_config.NumberColumn(f'{lv_time_range}-BY%', help="Yatırımcı başına yatırım tutarı değişimi", width="small"),
+    f'{lv_time_range}-BY' : st.column_config.NumberColumn(f'{lv_time_range}-BY', help="Güncel Yatırımcı başına yatırım tutarı", width="small"),
+    f'{lv_time_range}-BYΔ': st.column_config.NumberColumn(f'{lv_time_range}-BYΔ', help="Güncel Yatırımcı başına yatırım tutarı değişimi", width="small"),
+    f'RSI-14'             : st.column_config.NumberColumn(f'RSI-14', help="Güncel RSI", width="small"),
 }
 
-col2, col3 = st.columns([7, 6])
+col2, col3 = st.columns([9, 6])
 
 with st.sidebar:
     with st.container():
@@ -246,6 +247,7 @@ with col2:
                         f'{lv_time_range}-BY%': change_market_cap_per_investors_percent,
                         f'{lv_time_range}-YS' : end_number_of_investors,
                         f'{lv_time_range}-BY' : end_market_cap_per_investors,
+                        f'{lv_time_range}-BYΔ': change_market_cap_per_investors,
                         f'RSI-14'             : rsi_14
                     })
                     df_combined_symbol_metrics_list.append(df_symbol_metrics) 
@@ -266,12 +268,13 @@ with col2:
             df_symbol_history_list = None
             
             styled_df = df_combined_symbol_metrics.style
-            styled_df = styled_df.format({f'{lv_time_range}-F%': '{:.2f}', f'{lv_time_range}-YS%': '{:.2f}', f'{lv_time_range}-BY%': '{:.2f}', f'{lv_time_range}-YS': '{:,.0f}', f'{lv_time_range}-BY': '₺{:,.0f}' , 'RSI-14': '{:,.2f}' })
+            styled_df = styled_df.format({f'{lv_time_range}-F%': '{:.2f}', f'{lv_time_range}-YS%': '{:.2f}', f'{lv_time_range}-BY%': '{:.2f}', f'{lv_time_range}-YS': '{:,.0f}', f'{lv_time_range}-BY': '₺{:,.0f}' , f'{lv_time_range}-BYΔ': '₺{:,.0f}' , 'RSI-14': '{:,.2f}' })
             styled_df = styled_df.map(lambda val: color_gradient(val, f'{lv_time_range}-F%') if pd.notnull(val) else '', subset=[f'{lv_time_range}-F%'])
             styled_df = styled_df.map(lambda val: color_gradient(val, f'{lv_time_range}-YS%') if pd.notnull(val) else '', subset=[f'{lv_time_range}-YS%'])
             styled_df = styled_df.map(lambda val: color_gradient(val, f'{lv_time_range}-BY%') if pd.notnull(val) else '', subset=[f'{lv_time_range}-BY%'])
             styled_df = styled_df.map(lambda val: color_gradient(val, f'{lv_time_range}-YS') if pd.notnull(val) else '', subset=[f'{lv_time_range}-YS'])
             styled_df = styled_df.map(lambda val: color_gradient(val, f'{lv_time_range}-BY') if pd.notnull(val) else '', subset=[f'{lv_time_range}-BY'])
+            styled_df = styled_df.map(lambda val: color_gradient(val, f'{lv_time_range}-BYΔ') if pd.notnull(val) else '', subset=[f'{lv_time_range}-BYΔ'])
             styled_df = styled_df.map(lambda val: RSI_gradient(val) if pd.notnull(val) else '', subset=['RSI-14'])
 
             if not df_combined_symbol_metrics.empty:
