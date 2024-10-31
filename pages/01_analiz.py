@@ -103,14 +103,12 @@ def RSI_gradient(val):
 def plot_cumulative_change(df_filtered, set_filtered_symbols, title=""):
     fig = go.Figure()
 
-    # Loop through each selected symbol in filtered_fons
-    for symbol in set_filtered_symbols:
+    for symbol in set_filtered_symbols: # Loop through each selected symbol in filtered_fons
         symbol_data = df_filtered[df_filtered['symbol'] == symbol].copy()
         symbol_data.loc[:,'price_change_pct'] = symbol_data['close'].pct_change().fillna(0) # Calculate percentage change and cumulative change
         symbol_data.loc[:,'cumulative_change'] = (1 + symbol_data['price_change_pct']).cumprod() - 1
         
-        # Add the symbol's cumulative change to the figure
-        fig.add_trace(
+        fig.add_trace( # Add the symbol's cumulative change to the figure
             go.Scatter(
                 x=symbol_data['date'], 
                 y=symbol_data['cumulative_change'],
@@ -119,8 +117,7 @@ def plot_cumulative_change(df_filtered, set_filtered_symbols, title=""):
             )
         )
 
-    # Update the layout with rangeslider, rangeselector, and custom plot height
-    fig.update_layout(
+    fig.update_layout( # Update the layout with rangeslider, rangeselector, and custom plot height
         title=title,
         height=600,  # Adjust the height here
         xaxis_title="Date",
@@ -129,7 +126,7 @@ def plot_cumulative_change(df_filtered, set_filtered_symbols, title=""):
             rangeslider_visible=True
         ),
         yaxis=dict(
-            tickformat="%",  # Display y-axis as percentages
+            tickformat=".2%" ,  # Display y-axis as percentages
         )
     )
     return fig
@@ -146,14 +143,14 @@ df_merged, df_fon_table, symbol_attributes_df = fetch_data()
 lv_time_range = st.session_state.filter_label
 
 column_configuration_fon = {
-    "symbol"              : st.column_config.TextColumn("Fon", help="Fon 3 haneli kod", width="small"),
-    "title"               : st.column_config.TextColumn("Unvan", help="Fonun Unvanı", width="large"),
-    f'{lv_time_range}-F%' : st.column_config.NumberColumn(f'{lv_time_range}-F%', help="Fiyat değişimi", width="small"),
-    f'{lv_time_range}-YS%': st.column_config.NumberColumn(f'{lv_time_range}-YS%', help="Yatırımcı sayısı değişimi", width="small"),
+    "symbol"              : st.column_config.TextColumn("Fon", help="Fon Kodu", width="small"),
+    "title"               : st.column_config.TextColumn("Unvan", help="Fonun Ünvanı", width="large"),
+    f'{lv_time_range}-F%' : st.column_config.NumberColumn(f'{lv_time_range}-F%', help="Fiyat değişimi yüzdesi", width="small"),
+    f'{lv_time_range}-YS%': st.column_config.NumberColumn(f'{lv_time_range}-YS%', help="Yatırımcı sayısı değişimi yüzdesi", width="small"),
     f'{lv_time_range}-YS' : st.column_config.NumberColumn(f'{lv_time_range}-YS', help="Güncel Yatırımcı sayısı", width="small"),
-    f'{lv_time_range}-BY%': st.column_config.NumberColumn(f'{lv_time_range}-BY%', help="Yatırımcı başına yatırım tutarı değişimi", width="small"),
+    f'{lv_time_range}-BY%': st.column_config.NumberColumn(f'{lv_time_range}-BY%', help="Yatırımcı başına yatırım değişimi yüzdesi", width="small"),
     f'{lv_time_range}-BY' : st.column_config.NumberColumn(f'{lv_time_range}-BY', help="Güncel Yatırımcı başına yatırım tutarı", width="small"),
-    f'{lv_time_range}-BYΔ': st.column_config.NumberColumn(f'{lv_time_range}-BYΔ', help="Güncel Yatırımcı başına yatırım tutarı değişimi", width="small"),
+    f'{lv_time_range}-BYΔ': st.column_config.NumberColumn(f'{lv_time_range}-BYΔ', help="Yatırımcı başına yatırım tutarı değişimi", width="small"),
     f'RSI-14'             : st.column_config.NumberColumn(f'RSI-14', help="Güncel RSI", width="small"),
 }
 
@@ -275,7 +272,13 @@ with col2:
             df_symbol_history_list = None
             
             styled_df = df_combined_symbol_metrics.style
-            styled_df = styled_df.format({f'{lv_time_range}-F%': '{:.2f}', f'{lv_time_range}-YS%': '{:.2f}', f'{lv_time_range}-BY%': '{:.2f}', f'{lv_time_range}-YS': '{:,.0f}', f'{lv_time_range}-BY': '₺{:,.0f}' , f'{lv_time_range}-BYΔ': '₺{:,.0f}' , 'RSI-14': '{:,.2f}' })
+            styled_df = styled_df.format({f'{lv_time_range}-F%': '{:.2f}', 
+                                          f'{lv_time_range}-YS%': '{:.2f}', 
+                                          f'{lv_time_range}-BY%': '{:.2f}', 
+                                          f'{lv_time_range}-YS': '{:,.0f}', 
+                                          f'{lv_time_range}-BY': '₺ {:,.0f}' , 
+                                          f'{lv_time_range}-BYΔ': '₺ {:,.0f}' , 
+                                          'RSI-14': '{:,.2f}' })
             styled_df = styled_df.map(lambda val: color_gradient(val, f'{lv_time_range}-F%') if pd.notnull(val) else '', subset=[f'{lv_time_range}-F%'])
             styled_df = styled_df.map(lambda val: color_gradient(val, f'{lv_time_range}-YS%') if pd.notnull(val) else '', subset=[f'{lv_time_range}-YS%'])
             styled_df = styled_df.map(lambda val: color_gradient(val, f'{lv_time_range}-BY%') if pd.notnull(val) else '', subset=[f'{lv_time_range}-BY%'])
