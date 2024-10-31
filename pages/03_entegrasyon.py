@@ -342,7 +342,9 @@ if st.button("Start"):
     fon_table.to_csv('data/fon_table.csv', encoding='utf-8-sig', index=False)
 
     st.session_state.df_fon_table = fon_table
-
+    
     st.dataframe(fon_table.head())
     st.success("TEFAS Fonlarının nitelikleri çekildi")
     st.success("İşlem başarıyla tamamlandı")
+    
+    st.cache_data.clear()

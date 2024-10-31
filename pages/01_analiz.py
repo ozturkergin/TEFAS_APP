@@ -210,6 +210,9 @@ with col2:
                         continue
 
                     start_close                     = df_symbol_history.iloc[0]['close']
+                    if start_close == 0 : 
+                        continue
+                
                     start_number_of_investors       = df_symbol_history.iloc[0]['number_of_investors']
                     end_number_of_investors         = df_symbol_history.iloc[-1]['number_of_investors']
                     start_market_cap_per_investors  = df_symbol_history.iloc[0]['market_cap_per_investors']
