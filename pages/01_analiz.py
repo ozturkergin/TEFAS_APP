@@ -161,10 +161,17 @@ col2, col3 = st.columns([9, 6])
 
 with st.sidebar:
     with st.container():
-        show_favourites = st.checkbox("Favoriler")
-        show_portfolio = st.checkbox("Portföyüm")
-        no_show_ozel = st.checkbox("Özel Hariç", value=True)
-        no_show_serbest = st.checkbox("Serbest Hariç", value=True)
+        row1_col1, row1_col2 = st.columns(2)
+        with row1_col1:
+            show_favourites = st.checkbox("Favorilerim", key="Favorilerim")
+        with row1_col2:
+            show_portfolio = st.checkbox("Portföyüm", key="Portföyüm")
+        row2_col1, row2_col2 = st.columns(2)
+        with row2_col1:
+            no_show_ozel = st.checkbox("🚷Özel", key="Özel", value=True, help="Özel Fonlar Hariç")
+        with row2_col2:
+            no_show_serbest = st.checkbox("🚫Serbest", key="Serbest", value=True, help="Serbest Fonlar Hariç")
+
         selectable_attributes = st.dataframe(symbol_attributes_df, use_container_width=True, hide_index=True, on_select="rerun", selection_mode="multi-row")
         filtered_attributes   = symbol_attributes_df.loc[selectable_attributes.selection.rows]
 
