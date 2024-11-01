@@ -53,9 +53,13 @@ selected_symbols = st.multiselect(
 
 with st.sidebar:
     with st.container():
+        row1_col1, row1_col2 = st.columns(2)
+        with row1_col1:
+            show_favourites = st.checkbox("Favorilerim", key="Favorilerim")
+        with row1_col2:
+            show_portfolio = st.checkbox("Portföyüm", key="Portföyüm")
+            
         prompt_number_of_days_to_predict = st.number_input("Gelecek Kaç Gözlem Tahminlenmeli:", min_value=0, step=1, value=30)
-        show_favourites = st.checkbox("Favoriler")
-        show_portfolio = st.checkbox("Portföyüm")
 
         set_filtered_symbols.update(selected_symbols)
 

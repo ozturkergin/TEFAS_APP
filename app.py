@@ -2,42 +2,47 @@ import streamlit as st
 import pandas as pd
 import os
 
+st.set_page_config(layout="wide")
+
+with open("assets/styles.css") as f: st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+
 home_page = st.Page(
-    "pages/Home.py",
+    "page/Home.py",
     title="Home",
     icon=":material/account_circle:",
     default=True,
 )
 analiz_page = st.Page(
-    "pages/01_analiz.py",
+    "page/01_analiz.py",
     title="TEFAS Analiz",
     icon=":material/bar_chart:",
 )
 islemler_page = st.Page(
-    "pages/02_islemler.py",
+    "page/02_islemler.py",
     title="İşlem Geçmişi",
     icon=":material/add:",
 )
 portfoy_page = st.Page(
-    "pages/02_portfoy.py",
+    "page/02_portfoy.py",
     title="Portföy Analizi",
     icon=":material/token:",
 )
 entegrasyon_page = st.Page(
-    "pages/03_entegrasyon.py",
+    "page/03_entegrasyon.py",
     title="Veri İndir",
     icon=":material/data_check:",
 )
 fonfavori_page = st.Page(
-    "pages/02_fonfavori.py",
+    "page/02_fonfavori.py",
     title="Favorileri Yönet",
     icon=":material/book:",
 )
 tahmin_page = st.Page(
-    "pages/04_tahmin.py",
+    "page/04_tahmin.py",
     title="Tahmin",
     icon=":material/data_thresholding:",
 )
+
 
 pg = st.navigation(
     {
@@ -46,10 +51,8 @@ pg = st.navigation(
         "Portföy": [islemler_page, portfoy_page, fonfavori_page],
         "Forecast": [tahmin_page],
     }, 
-    position="sidebar"
+    position="sidebar" 
 )
-
-st.set_page_config(layout="wide")
 
 if os.path.exists('data/fon_table.csv') :
     # if 'df_fon_table' not in st.session_state :
@@ -57,7 +60,7 @@ if os.path.exists('data/fon_table.csv') :
     st.session_state.df_fon_table = df_fon_table 
     df_fon_table = None
 else: 
-    st.page_link(page="pages/03_entegrasyon.py")
+    st.page_link(page="page/03_entegrasyon.py")
 
 if os.path.exists('data/tefas_transformed.csv') :
     # if 'df_transformed' not in st.session_state :
@@ -66,7 +69,7 @@ if os.path.exists('data/tefas_transformed.csv') :
     st.session_state.df_transformed = df_transformed
     df_transformed = None 
 else: 
-    st.page_link(page="pages/03_entegrasyon.py")
+    st.page_link(page="page/03_entegrasyon.py")
 
 if os.path.exists('data/tefas_transformed.csv') and os.path.exists('data/fon_table.csv') :
     df_merged = pd.merge(st.session_state.df_transformed, st.session_state.df_fon_table, on='symbol', how='inner')
