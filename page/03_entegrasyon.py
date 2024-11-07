@@ -251,12 +251,12 @@ if st.button("Start"):
     fetched_data['market_cap'].astype(float,False)
     fetched_data['number_of_shares'].astype(float,False)
     fetched_data['number_of_investors'].astype(float,False)
-    fetched_data['market_cap_per_investors'] = fetched_data['market_cap'] / fetched_data['number_of_investors']
+    # fetched_data['market_cap_per_investors'] = fetched_data['market_cap'] / fetched_data['number_of_investors']
     # fetched_data = fetched_data[(fetched_data!=0)&(pd.isnull(fetched_data))]
-    fetched_data = fetched_data.sort_values(['symbol', 'date'])
-    fetched_data['open'] = fetched_data.groupby('symbol')['close'].shift(1)
-    fetched_data['high'] = fetched_data[['open', 'close']].max(axis=1)
-    fetched_data['low'] = fetched_data[['open', 'close']].min(axis=1)
+    # fetched_data = fetched_data.sort_values(['symbol', 'date'])
+    # fetched_data['open'] = fetched_data.groupby('symbol')['close'].shift(1)
+    # fetched_data['high'] = fetched_data[['open', 'close']].max(axis=1)
+    # fetched_data['low'] = fetched_data[['open', 'close']].min(axis=1)
     fetched_data['date'] = fetched_data['date'].dt.strftime('%Y-%m-%d')
     fetched_data.dropna()
     
@@ -296,11 +296,6 @@ if st.button("Start"):
         group_indexed = pd.concat([group_indexed, BB], axis=1)
 
         # group_indexed['close_007d_ago'] = group_indexed['close'].shift(7, freq='D').interpolate(method='linear')
-        # group_indexed['close_030d_ago'] = group_indexed['close'].shift(30, freq='D').interpolate(method='linear')
-        # group_indexed['close_060d_ago'] = group_indexed['close'].shift(60, freq='D').interpolate(method='linear')
-        # group_indexed['close_090d_ago'] = group_indexed['close'].shift(90, freq='D').interpolate(method='linear')
-        # group_indexed['close_180d_ago'] = group_indexed['close'].shift(180, freq='D').interpolate(method='linear')
-        # group_indexed['close_365d_ago'] = group_indexed['close'].shift(365, freq='D').interpolate(method='linear')
         group_indexed.reset_index(inplace=True)
 
         return group_indexed
@@ -312,6 +307,7 @@ if st.button("Start"):
     fetched_data['week_no'] = fetched_data['date'].dt.isocalendar().week.astype(str).str.zfill(2)
     fetched_data['year_week'] = fetched_data['year'].astype(str) +'-'+ fetched_data['week_no'].astype(str)
     fetched_data['day_of_week'] = fetched_data['date'].dt.strftime('%A')
+    fetched_data['market_cap_per_investors'] = fetched_data['market_cap'] / fetched_data['number_of_investors']
     #idx = fetched_data.groupby(['symbol', 'year_week'])['date'].idxmax()
     #max_prices = fetched_data.loc[idx, ['symbol', 'year_week', 'close']]
     #max_prices = max_prices.rename(columns={'close': 'price_at_week_close'})
@@ -319,11 +315,15 @@ if st.button("Start"):
     #fetched_data['qty'] = 100/fetched_data['close']
     #fetched_data['valuation_at_week_close'] = fetched_data['price_at_week_close'] * fetched_data['qty']
     fetched_data.sort_values(by=['symbol', 'date'], inplace=True)
+    fetched_data['open'] = fetched_data.groupby('symbol')['close'].shift(1)
+    fetched_data['high'] = fetched_data[['open', 'close']].max(axis=1)
+    fetched_data['low'] = fetched_data[['open', 'close']].min(axis=1)
+
     fetched_data = fetched_data.groupby(['symbol']).apply(calculate_ta)
     fetched_data['date'] = fetched_data['date'].dt.strftime('%Y-%m-%d')
     fetched_data.to_csv('data/tefas_transformed.csv', encoding='utf-8-sig', index=False)
 
-    st.dataframe(fetched_data.head())
+    st.dataframe(fetched_data.head(15))
     st.success("TEFAS Verisi zenginleştirildi")
     st.warning("TEFAS Fonlarının nitelikleri çekiliyor...")
 
