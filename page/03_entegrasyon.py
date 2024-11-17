@@ -5,7 +5,6 @@ import concurrent.futures
 import time
 import streamlit as st
 import pandas_ta as ta
-import numpy as np
 
 from pandas_ta.utils import get_offset, verify_series, signals
 from datetime import datetime, timedelta, date

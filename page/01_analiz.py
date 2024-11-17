@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import seaborn as sns
 import plotly.graph_objects as go
 import os
@@ -36,7 +35,7 @@ def fetch_data():
             st.session_state.df_transformed = df_transformed
 
     symbol_attributes_of_fon_table = [col for col in df_fon_table.columns if col.startswith('symbol_')]
-    symbol_attributes_list = np.array([col.replace('symbol_', '') for col in symbol_attributes_of_fon_table])
+    symbol_attributes_list = [col.replace('symbol_', '') for col in symbol_attributes_of_fon_table]
     symbol_attributes_list = sorted(symbol_attributes_list, key=turkish_sort)
     symbol_attributes_df = pd.DataFrame({'Fon Unvan Türü': symbol_attributes_list})
 
@@ -69,19 +68,24 @@ def filter_get_min_date(range_type):
     return min_date
 
 def color_gradient(val, column_name):
-    if pd.isna(val) or np.isinf(val):   # Exclude NaN and inf values
+    if pd.isna(val) or pd.isnull(val):  # Exclude NaN and inf values
         return ''
-    
+
     ranks = df_combined_symbol_metrics[column_name].rank(method='min')  # Get the ranks of the values in the specified column
     max_rank = ranks.max()
-    current_rank = ranks.loc[df_combined_symbol_metrics[column_name] == val].values[0] # Get the rank of the current value
-    norm_val = (current_rank - 1) / (max_rank - 1)  # Normalize the rank to [0, 1] Subtract 1 to make it 0-indexed
-    norm_val = np.clip(norm_val, 0, 1) # Ensure normalization is within [0, 1]
+    
+    try:
+        current_rank = ranks[df_combined_symbol_metrics[column_name] == val].iloc[0]  # Get the rank of the current value
+    except IndexError:
+        return ''  # Or you could return a default color
+    
+    norm_val = (current_rank - 1) / (max_rank)  # Normalize the rank to [0, 1] Subtract 1 to make it 0-indexed
+    norm_val = max(0, min(1, norm_val))  # Clip to [0, 1] manually
     color = sns.color_palette("RdYlGn", as_cmap=True)(norm_val)
     return f'background-color: rgba{tuple(int(c * 255) for c in color[:3])}'
 
 def RSI_gradient(val):
-    if pd.isna(val) or np.isinf(val):  # Handle NaN and inf values
+    if pd.isna(val) or pd.isnull(val):  # Handle NaN and inf values
         return ''
 
     if val < 40:  # Values below 40 should be green with a star sign

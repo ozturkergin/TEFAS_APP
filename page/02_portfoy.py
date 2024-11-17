@@ -3,7 +3,6 @@ import pandas as pd
 import os
 import concurrent.futures
 import seaborn as sns
-import numpy as np
 
 from datetime import datetime
 
@@ -71,19 +70,24 @@ def calculate_sharpe_ratio(daily_returns):
     return daily_returns.mean() / daily_returns.std() * (252 ** 0.5)
 
 def color_gradient(val, column_name):
-    if pd.isna(val) or np.isinf(val):   # Exclude NaN and inf values
+    if pd.isna(val) or pd.isnull(val):  # Exclude NaN and inf values
         return ''
-    
+
     ranks = df_summary[column_name].rank(method='min')  # Get the ranks of the values in the specified column
     max_rank = ranks.max()
-    current_rank = ranks.loc[df_summary[column_name] == val].values[0] # Get the rank of the current value
-    norm_val = (current_rank - 1) / (max_rank - 1)  # Normalize the rank to [0, 1] Subtract 1 to make it 0-indexed
-    norm_val = np.clip(norm_val, 0, 1) # Ensure normalization is within [0, 1]
+    
+    try:
+        current_rank = ranks[df_summary[column_name] == val].iloc[0]  # Get the rank of the current value
+    except IndexError:
+        return ''  # Or you could return a default color
+    
+    norm_val = (current_rank - 1) / (max_rank)  # Normalize the rank to [0, 1] Subtract 1 to make it 0-indexed
+    norm_val = max(0, min(1, norm_val))  # Clip to [0, 1] manually
     color = sns.color_palette("RdYlGn", as_cmap=True)(norm_val)
     return f'background-color: rgba{tuple(int(c * 255) for c in color[:3])}'
 
 def RSI_gradient(val):
-    if pd.isna(val) or np.isinf(val):  # Handle NaN and inf values
+    if pd.isna(val) or pd.isnull(val):  # Handle NaN and inf values
         return ''
 
     if val < 40:  # Values below 40 should be green with a star sign
