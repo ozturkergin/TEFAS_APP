@@ -42,14 +42,18 @@ tahmin_page = st.Page(
     title="Tahmin",
     icon=":material/data_thresholding:",
 )
-
+tradingview_page = st.Page(
+    "page/01_tradingview.py",
+    title="Tradingview",
+    icon=":material/book:",
+)
 
 pg = st.navigation(
     {
-        "Analiz": [home_page, analiz_page],
+        "Analiz": [home_page, analiz_page, tahmin_page, tradingview_page],
         "Entegrasyon": [entegrasyon_page],
         "Portföy": [islemler_page, portfoy_page, fonfavori_page],
-        "Forecast": [tahmin_page],
+        # "Forecast": [tahmin_page],
     }, 
     position="sidebar" 
 )

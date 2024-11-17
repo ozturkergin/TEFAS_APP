@@ -2,6 +2,9 @@ import streamlit as st
 import pandas as pd
 import os
 import concurrent.futures
+import seaborn as sns
+import numpy as np
+
 from datetime import datetime
 
 # Load fon_table.csv if it exists, otherwise warn the user
@@ -59,13 +62,44 @@ if df_portfolio.empty:
 col3, col2 = st.columns([100, 1])
 
 # Create a summary dataframe
-df_summary = pd.DataFrame(columns=['Fon', 'Unvan', 'Miktar', 'Maliyet', 'Gider', 'Fiyat', 'Tutar', 'Δ', 'Başarı Δ', 'Volatilite', 'Sharpe Oranı'])
+df_summary = pd.DataFrame(columns=['Fon', 'Unvan', 'Miktar', 'Maliyet', 'Gider', 'Fiyat', 'Tutar', 'Δ', 'Başarı Δ', 'RSI', 'Volatilite', 'Sharpe Oranı'])
 df_portfolio['date'] = pd.to_datetime(df_portfolio['date'], errors='coerce')
 df_portfolio = df_portfolio[df_portfolio['symbol'] != ""].sort_values(by=['symbol', 'date'])
 
 # Function to calculate Sharpe ratio
 def calculate_sharpe_ratio(daily_returns):
     return daily_returns.mean() / daily_returns.std() * (252 ** 0.5)
+
+def color_gradient(val, column_name):
+    if pd.isna(val) or np.isinf(val):   # Exclude NaN and inf values
+        return ''
+    
+    ranks = df_summary[column_name].rank(method='min')  # Get the ranks of the values in the specified column
+    max_rank = ranks.max()
+    current_rank = ranks.loc[df_summary[column_name] == val].values[0] # Get the rank of the current value
+    norm_val = (current_rank - 1) / (max_rank - 1)  # Normalize the rank to [0, 1] Subtract 1 to make it 0-indexed
+    norm_val = np.clip(norm_val, 0, 1) # Ensure normalization is within [0, 1]
+    color = sns.color_palette("RdYlGn", as_cmap=True)(norm_val)
+    return f'background-color: rgba{tuple(int(c * 255) for c in color[:3])}'
+
+def RSI_gradient(val):
+    if pd.isna(val) or np.isinf(val):  # Handle NaN and inf values
+        return ''
+
+    if val < 40:  # Values below 40 should be green with a star sign
+        norm_val = val / 40  # Normalize in [0, 1] range for green gradient
+        color = sns.color_palette("Greens", as_cmap=True)(norm_val)
+        return f'background-color: rgba{tuple(int(c * 255) for c in color[:3])}; color: white; font-weight: bold;'
+    
+    elif val > 70:  # Values above 70 should be red
+        norm_val = (val - 40) / 30  # Normalize in [0, 1] range for gradient
+        color = sns.color_palette("RdYlGn", as_cmap=True)(1 - norm_val)  # Green to Red gradient
+        return f'background-color: rgba{tuple(int(c * 255) for c in color[:3])}; color: white; font-weight: bold;'
+    
+    else:  # Values between 40 and 70 should transition from green to red
+        norm_val = (val - 40) / 30  # Normalize in [0, 1] range for gradient
+        color = sns.color_palette("RdYlGn", as_cmap=True)(1 - norm_val)  # Green to Red gradient
+        return f'background-color: rgba{tuple(int(c * 255) for c in color[:3])}; color: black; font-weight: normal;'
 
 # Function to process each symbol
 def process_symbol(symbol):
@@ -77,6 +111,7 @@ def process_symbol(symbol):
 
     most_recent_price = recent_data.iloc[-1]['close']
     most_recent_date = recent_data.iloc[-1]['date']
+    most_recent_rsi = recent_data.iloc[-1]['RSI_14']
 
     total_quantity = 0
     total_value = 0
@@ -105,8 +140,7 @@ def process_symbol(symbol):
             avg_buy_price = total_value / total_quantity
             quantity_remained += quantity
 
-            # Check for subsequent sell transactions for the current buy
-            for j in range(i + 1, len(symbol_data)):
+            for j in range(i + 1, len(symbol_data)): # Check for subsequent sell transactions for the current buy
                 next_row = symbol_data.iloc[j]
                 if next_row['transaction_type'] == 'sell':
                     sell_quantity = next_row['quantity']
@@ -123,8 +157,7 @@ def process_symbol(symbol):
                         total_days += quantity
                         break
 
-            # Remaining quantity at most recent price
-            if quantity_remained > 0:
+            if quantity_remained > 0: # Remaining quantity at most recent price
                 days_held = (most_recent_date - transaction_date).days
                 weighted_daily_gain += ((most_recent_price - unit_price) / unit_price * 100) / days_held * 365 * quantity_remained
                 total_days += quantity_remained
@@ -154,6 +187,7 @@ def process_symbol(symbol):
             'Tutar': round(total_quantity * most_recent_price, 2),
             'Δ': percentage_change,
             'Başarı Δ': round(yearly_gain, 2),
+            'RSI': round(most_recent_rsi, 2),
             'Volatilite': volatility,
             'Sharpe Oranı': sharpe_ratio
         }
@@ -169,24 +203,44 @@ with concurrent.futures.ThreadPoolExecutor() as executor:
 
 # Convert summary rows to DataFrame and display
 if summary_rows:
-    df_summary = pd.DataFrame(summary_rows)
+    df_summary = pd.DataFrame(summary_rows).sort_values(by="Tutar", ascending=False)
+
     st.subheader("Portföy Analiz")
     dataframe_height = (len(df_summary) + 1) * 35 + 2
 
     column_configuration = {
-        "Fon": st.column_config.TextColumn("Fon", help="Fon Kodu", width="small"),
+        "Fon": st.column_config.LinkColumn("Fon", help="Fon Kodu", width="small"),
         "Unvan": st.column_config.TextColumn("Unvan", help="Fonun Ünvanı", width="large"),
-        "Miktar": st.column_config.NumberColumn("Miktar", help="Fon Adedi", width="small", format="%d"),
-        "Maliyet": st.column_config.NumberColumn("Maliyet", help="İşlemler sonucu birim maliyeti", width="small", format="%.2f"),
-        "Gider": st.column_config.NumberColumn("Gider", help="İşlemler sonucu gider", width="small", format="%.2f"),
-        "Fiyat": st.column_config.NumberColumn("Fiyat", help="Güncel Fiyat", width="small", format="%.4f"),
-        "Tutar": st.column_config.NumberColumn("Tutar", help="Güncel Tutar", width="small", format="%.2f"),
-        "Δ": st.column_config.NumberColumn("Δ", help="Güncel fiyat değişim yüzdesi", width="small", format="%.2f"),
-        "Başarı Δ": st.column_config.NumberColumn("Başarı Δ", help="Yıllıklandırılmış işlem getiri yüzdesi", width="small", format="%.2f"),
-        "Volatilite": st.column_config.NumberColumn("Volatilite", help="Volatilite", width="small", format="%.4f"),
-        "Sharpe Oranı": st.column_config.NumberColumn("Sharpe Oranı", help="Sharpe Oranı", width="small", format="%.4f"),
+        "Miktar": st.column_config.NumberColumn("Miktar", help="Fon Adedi", width="small"),
+        "Maliyet": st.column_config.NumberColumn("Maliyet", help="İşlemler sonucu birim maliyeti", width="small"),
+        "Gider": st.column_config.NumberColumn("Gider", help="İşlemler sonucu gider", width="small"),
+        "Fiyat": st.column_config.NumberColumn("Fiyat", help="Güncel Fiyat", width="small"),
+        "Tutar": st.column_config.NumberColumn("Tutar", help="Güncel Tutar", width="small"),
+        "Δ": st.column_config.NumberColumn("Δ", help="Güncel fiyat değişim yüzdesi", width="small"),
+        "Başarı Δ": st.column_config.NumberColumn("Başarı Δ", help="Yıllıklandırılmış işlem getiri yüzdesi", width="small"),
+        "RSI": st.column_config.NumberColumn("RSI", help="RSI 14", width="small"),
+        "Volatilite": st.column_config.NumberColumn("Volatilite", help="Volatilite", width="small"),
+        "Sharpe Oranı": st.column_config.NumberColumn("Sharpe Oranı", help="Sharpe Oranı", width="small"),
     }
 
-    st.dataframe(df_summary, hide_index=True, height=dataframe_height, use_container_width=True, column_config=column_configuration)
+    styled_df = df_summary.style
+    styled_df = styled_df.format({f'Gider': '₺ {:,.2f}', 
+                                  f'Miktar': '{:,.0f}', 
+                                  f'Maliyet': '₺ {:.4f}', 
+                                  f'Fiyat': '₺ {:.4f}', 
+                                  f'Tutar': '₺ {:,.2f}', 
+                                  f'Volatilite': '{:.2f}', 
+                                  f'Sharpe Oranı': '{:.2f}', 
+                                  f'Δ': '% {:,.2f}', 
+                                  f'Başarı Δ': '% {:,.2f}' , 
+                                  'RSI': '{:.2f}' })
+  
+    styled_df = styled_df.map(lambda val: f'<span><a target="_blank" href="https://www.tefas.gov.tr/FonAnaliz.aspx?FonKod={val}">{val}</a></span>' , subset=['Fon'])
+    styled_df = styled_df.map(lambda val: color_gradient(val, f'Δ') if pd.notnull(val) else '', subset=[f'Δ'])
+    styled_df = styled_df.map(lambda val: color_gradient(val, f'Başarı Δ') if pd.notnull(val) else '', subset=[f'Başarı Δ'])
+    styled_df = styled_df.map(lambda val: RSI_gradient(val) if pd.notnull(val) else '', subset=['RSI'])
+
+    # st.write(styled_df.to_html(), unsafe_allow_html=True)
+    st.dataframe(styled_df, hide_index=True, height=dataframe_height, use_container_width=True, column_config=column_configuration)
 else:
     st.write("No data to display.")

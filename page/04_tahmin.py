@@ -5,7 +5,6 @@ import plotly.graph_objects as go
 import os
 from prophet import Prophet
 
-# symbol_attributes_df = pd.DataFrame()
 set_filtered_symbols = set()
 
 # Turkish sorting function
@@ -124,5 +123,3 @@ for symbol in set_filtered_symbols:
             st.dataframe(future_x_days, use_container_width=True, hide_index=True)
         with col3:            # Display the chart in Streamlit
             st.plotly_chart(fig)
-
-            
