@@ -101,7 +101,12 @@ if 'df_transformed' in st.session_state:
 
         # Display the chart
         chart_html = render_lightweight_chart(chart_data)
-        st.components.v1.html(chart_html, height=800)
+        col1, col2 = st.columns([9, 6])
+        with col1:
+            st.components.v1.html(chart_html, height=800)
+        with col2: 
+            df = df.sort_values('time', ascending=False)
+            st.dataframe(df, hide_index=True, height=800)
 
 else:
     st.error("No transformed data available in the session state.")
