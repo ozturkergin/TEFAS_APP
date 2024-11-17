@@ -89,19 +89,17 @@ def RSI_gradient(val):
         return ''
 
     if val < 40:  # Values below 40 should be green with a star sign
-        norm_val = val / 40  # Normalize in [0, 1] range for green gradient
-        color = sns.color_palette("Greens", as_cmap=True)(norm_val)
-        return f'background-color: rgba{tuple(int(c * 255) for c in color[:3])}; color: white; font-weight: bold;'
+        norm_val = 1 - ( (val - 40) / 30 )  # Normalize in [0, 1] range for gradient
+        color = sns.color_palette("RdYlGn", as_cmap=True)(norm_val)  # Green to Red gradient
+        return f'background-color: rgba{tuple(int(c * 255) for c in color[:3])};color: white; font-weight: bold;'
     
     elif val > 70:  # Values above 70 should be red
-        norm_val = (val - 40) / 30  # Normalize in [0, 1] range for gradient
-        color = sns.color_palette("RdYlGn", as_cmap=True)(1 - norm_val)  # Green to Red gradient
-        return f'background-color: rgba{tuple(int(c * 255) for c in color[:3])}; color: white; font-weight: bold;'
+        return 'background-color: darkred; color: white; font-weight: bold;' 
     
     else:  # Values between 40 and 70 should transition from green to red
-        norm_val = (val - 40) / 30  # Normalize in [0, 1] range for gradient
-        color = sns.color_palette("RdYlGn", as_cmap=True)(1 - norm_val)  # Green to Red gradient
-        return f'background-color: rgba{tuple(int(c * 255) for c in color[:3])}; color: black; font-weight: normal;'
+        norm_val = 1 - ( (val - 40) / 30 )  # Normalize in [0, 1] range for gradient
+        color = sns.color_palette("RdYlGn", as_cmap=True)(norm_val)  # Green to Red gradient
+        return f'background-color: rgba{tuple(int(c * 255) for c in color[:3])};'
 
 # Cumulative change plot function
 def plot_cumulative_change(df_filtered, set_filtered_symbols, title=""):
