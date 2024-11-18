@@ -8,6 +8,7 @@ st.title("Home Page")
 
 symbol_attributes_df = pd.DataFrame()
 df_todays_total = pd.DataFrame()
+df_transformed = pd.DataFrame()
 
 @st.cache_data
 def fetch_todays_data():

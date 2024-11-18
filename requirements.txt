@@ -3,6 +3,7 @@ bs4
 urllib3
 marshmallow
 pandas_ta
+numpy==1.23.5
 matplotlib
 scikit-learn
 pandas 
