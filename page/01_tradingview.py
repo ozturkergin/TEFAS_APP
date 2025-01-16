@@ -45,7 +45,7 @@ if 'df_transformed' in st.session_state:
         volume_data = df[['time', 'number_of_investors']].rename(columns={'number_of_investors': 'value'}).to_dict(orient='records')
 
         # HTML/JavaScript for Lightweight Charts
-        def render_lightweight_chart(candle_data, rsi_data, volume_data):
+        def render_lightweight_chart(candle_data):
             return f"""
             <!DOCTYPE html>
             <html>
@@ -80,25 +80,6 @@ if 'df_transformed' in st.session_state:
                     }});
                     candleSeries.setData({json.dumps(candle_data)});
 
-                    // Add RSI line series
-                    const rsiSeries = chart.addLineSeries({{
-                        color: 'blue',
-                        lineWidth: 2,
-                        priceScaleId: 'left', // Separate scale on the left
-                    }});
-                    rsiSeries.setData({json.dumps(rsi_data)});
-
-                    // Add volume histogram series
-                    const volumeSeries = chart.addHistogramSeries({{
-                        color: 'rgba(76, 175, 80, 0.5)', // Green for positive values
-                        priceScaleId: '', // Auto scales separately
-                        scaleMargins: {{
-                            top: 0.85,
-                            bottom: 0,
-                        }},
-                    }});
-                    volumeSeries.setData({json.dumps(volume_data)});
-
                     // Configure scales
                     chart.priceScale('right').applyOptions({{
                         scaleMargins: {{
@@ -123,7 +104,7 @@ if 'df_transformed' in st.session_state:
             """
 
         # Display the chart
-        chart_html = render_lightweight_chart(candle_data, rsi_data, volume_data)
+        chart_html = render_lightweight_chart(candle_data)
         col1, col2 = st.columns([9, 6])
         with col1:
             st.components.v1.html(chart_html, height=600)

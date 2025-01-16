@@ -26,17 +26,14 @@ if os.path.exists('data/tefas_transformed.csv') :
     if 'df_transformed' in st.session_state :
         df_transformed = st.session_state.df_transformed 
     else : 
-        df_transformed = pd.read_csv('data/tefas_transformed.csv')
-        df_transformed['date'] = pd.to_datetime(df_transformed['date'])
+        df_transformed = pd.read_csv('data/tefas_transformed.csv', parse_dates=['date'])
         st.session_state.df_transformed = df_transformed
 
 # Define a function to load portfolio data or create an empty DataFrame
 def load_portfolio():
     if os.path.exists("data/myportfolio.csv"):
-        return_df = pd.read_csv("data/myportfolio.csv")
-
+        return_df = pd.read_csv("data/myportfolio.csv", parse_dates=['date'])  # Load portfolio data
         return_df['quantity'] = pd.to_numeric(return_df['quantity'], errors='coerce').fillna(0).astype(int) # Fill missing values in 'quantity' column with 0 before casting to integer
-        return_df['date']     = pd.to_datetime(return_df['date'], errors='coerce')  # Convert date to datetime
         
         # Merge portfolio with tefas price data on 'symbol' and 'date'
         merged_df = pd.merge(return_df, df_transformed[['symbol', 'date', 'close']], on=['symbol', 'date'], how='left')

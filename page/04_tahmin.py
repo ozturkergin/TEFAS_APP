@@ -6,12 +6,6 @@ from prophet import Prophet
 
 set_filtered_symbols = set()
 
-# Turkish sorting function
-def turkish_sort(x):
-    import locale
-    locale.setlocale(locale.LC_ALL, 'tr_TR.UTF-8')
-    return locale.strxfrm(x)
-
 @st.cache_data
 def fetch_data():
     if os.path.exists('data/fon_table.csv'):
@@ -25,8 +19,7 @@ def fetch_data():
         if 'df_transformed' in st.session_state:
             df_transformed = st.session_state.df_transformed
         else:
-            df_transformed = pd.read_csv('data/tefas_transformed.csv')
-            df_transformed['date'] = pd.to_datetime(df_transformed['date'])
+            df_transformed = pd.read_csv('data/tefas_transformed.csv', parse_dates=['date'])
             st.session_state.df_transformed = df_transformed
 
     if 'df_merged' in st.session_state:

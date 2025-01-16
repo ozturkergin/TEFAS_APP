@@ -3,7 +3,6 @@ import pandas as pd
 import os
 import concurrent.futures
 import seaborn as sns
-
 from datetime import datetime
 
 # Load fon_table.csv if it exists, otherwise warn the user
@@ -21,15 +20,12 @@ else:
 if df_fon_table.empty:
     st.stop()
 
-unique_symbols = sorted(df_fon_table['symbol'].unique().tolist())
-
 # Load tefas_transformed.csv if it exists
 if os.path.exists('data/tefas_transformed.csv'):
     if 'df_transformed' in st.session_state:
         df_transformed = st.session_state.df_transformed
     else:
-        df_transformed = pd.read_csv('data/tefas_transformed.csv')
-        df_transformed['date'] = pd.to_datetime(df_transformed['date'], errors='coerce')
+        df_transformed = pd.read_csv('data/tefas_transformed.csv', parse_dates=['date'])
         st.session_state.df_transformed = df_transformed
 
 # Load portfolio data or create an empty DataFrame
@@ -38,9 +34,8 @@ def load_portfolio():
         if 'myportfolio' in st.session_state:
             myportfolio = st.session_state.myportfolio
         else:
-            myportfolio = pd.read_csv('data/myportfolio.csv')
+            myportfolio = pd.read_csv('data/myportfolio.csv', parse_dates=['date'])
             myportfolio['quantity'] = pd.to_numeric(myportfolio['quantity'], errors='coerce').fillna(0).astype(int)
-            myportfolio['date'] = pd.to_datetime(myportfolio['date'], errors='coerce')
             st.session_state.myportfolio = myportfolio
 
         # Merge portfolio with transformed data
@@ -58,16 +53,18 @@ df_portfolio = load_portfolio()
 if df_portfolio.empty:
     st.stop()
 
-col3, col2 = st.columns([100, 1])
-
 # Create a summary dataframe
-df_summary = pd.DataFrame(columns=['Fon', 'Unvan', 'Miktar', 'Maliyet', 'Gider', 'Fiyat', 'Tutar', 'Δ', 'Başarı Δ', 'RSI', 'Volatilite', 'Sharpe Oranı'])
+df_summary = pd.DataFrame(columns=['Count', 'Date', 'Fon', 'Unvan', 'Miktar', 'Maliyet', 'Gider', 'Fiyat', 'Tutar', 'Gün', 'Δ', 'Başarı Δ', 'RSI'])
+
 df_portfolio['date'] = pd.to_datetime(df_portfolio['date'], errors='coerce')
 df_portfolio = df_portfolio[df_portfolio['symbol'] != ""].sort_values(by=['symbol', 'date'])
 
 # Function to calculate Sharpe ratio
-def calculate_sharpe_ratio(daily_returns):
-    return daily_returns.mean() / daily_returns.std() * (252 ** 0.5)
+# def calculate_sharpe_ratio(daily_returns):
+#     mean_return = daily_returns.mean()
+#     std_return = daily_returns.std()
+#     sharpe_ratio = mean_return / std_return * (252 ** 0.5)
+#     return sharpe_ratio
 
 def color_gradient(val, column_name):
     if pd.isna(val) or pd.isnull(val):  # Exclude NaN and inf values
@@ -104,22 +101,26 @@ def RSI_gradient(val):
         return f'background-color: rgba{tuple(int(c * 255) for c in color[:3])};'
 
 # Function to process each symbol
-def process_symbol(symbol):
-    symbol_data = df_portfolio[df_portfolio['symbol'] == symbol].sort_values('date')
+def process_symbol(symbol, count):
+    count_index = count * -1 
     recent_data = df_transformed[df_transformed['symbol'] == symbol].sort_values('date')
 
     if recent_data.empty:
         return None
 
-    most_recent_price = recent_data.iloc[-1]['close']
-    most_recent_date = recent_data.iloc[-1]['date']
-    most_recent_rsi = recent_data.iloc[-1]['RSI_14']
+    most_recent_price = recent_data.iloc[count_index]['close']
+    most_recent_date = recent_data.iloc[count_index]['date']
+    most_recent_rsi = recent_data.iloc[count_index]['RSI_14']
+
+    symbol_data = df_portfolio[(df_portfolio['symbol'] == symbol) & (df_portfolio['date'] <= most_recent_date)].sort_values('date')
 
     total_quantity = 0
     total_value = 0
     avg_buy_price = 0
     weighted_daily_gain = 0
     total_days = 0
+    avg_days = 0
+    total_quantity_bought = 0
     quantity_remained = 0
 
     for i, (idx, row) in enumerate(symbol_data.iterrows()):
@@ -139,8 +140,10 @@ def process_symbol(symbol):
         if transaction_type == 'buy':
             total_value += quantity * unit_price
             total_quantity += quantity
+            total_quantity_bought += quantity
             avg_buy_price = total_value / total_quantity
             quantity_remained += quantity
+            avg_days += (most_recent_date - transaction_date).days * quantity 
 
             for j in range(i + 1, len(symbol_data)): # Check for subsequent sell transactions for the current buy
                 next_row = symbol_data.iloc[j]
@@ -167,19 +170,23 @@ def process_symbol(symbol):
         elif transaction_type == 'sell':
             total_value -= quantity * avg_buy_price
             total_quantity -= quantity
+            avg_days -= (most_recent_date - transaction_date).days * quantity 
             if total_quantity == 0:
                 avg_buy_price = 0
             else:
                 avg_buy_price = total_value / total_quantity
 
     if total_quantity > 0:
-        percentage_change = ((most_recent_price - avg_buy_price) / avg_buy_price) * 100
-        yearly_gain = weighted_daily_gain / total_days
-        daily_returns = recent_data['close'].pct_change()
-        volatility = daily_returns.std() * (252 ** 0.5)
-        sharpe_ratio = calculate_sharpe_ratio(daily_returns)
+        percentage_change = ((most_recent_price - avg_buy_price) / avg_buy_price) * 100 if avg_buy_price != 0 else 0
+        annual_gain = weighted_daily_gain / total_days if total_days != 0 else 0
+        # daily_returns = recent_data['close'].pct_change().dropna()
+        # volatility = daily_returns.std() * (252 ** 0.5) if not daily_returns.empty else 0
+        # sharpe_ratio = calculate_sharpe_ratio(daily_returns)
+        avg_days = avg_days / total_quantity_bought if total_quantity_bought != 0 else 0
 
         return {
+            'Count' : count,
+            'Date' : most_recent_date,
             'Fon': symbol,
             'Unvan': symbol_title.iloc[0] if not symbol_title.empty else "",
             'Miktar': total_quantity,
@@ -187,62 +194,102 @@ def process_symbol(symbol):
             'Gider': round(total_value, 2),
             'Fiyat': most_recent_price,
             'Tutar': round(total_quantity * most_recent_price, 2),
+            'Gün': avg_days,
             'Δ': percentage_change,
-            'Başarı Δ': round(yearly_gain, 2),
+            'Başarı Δ': round(annual_gain, 2),
             'RSI': round(most_recent_rsi, 2),
-            'Volatilite': volatility,
-            'Sharpe Oranı': sharpe_ratio
+            # 'Volatilite': volatility,
+            # 'Sharpe': sharpe_ratio
         }
 
 # Execute the process for each unique symbol in parallel
 summary_rows = []
 with concurrent.futures.ThreadPoolExecutor() as executor:
-    future_to_symbol = {executor.submit(process_symbol, symbol): symbol for symbol in df_portfolio['symbol'].unique()}
-    for future in concurrent.futures.as_completed(future_to_symbol):
-        result = future.result()
-        if result:
-            summary_rows.append(result)
+    for i in range(1, 6):
+        future_to_symbol = {executor.submit(process_symbol, symbol, i): symbol for symbol in df_portfolio['symbol'].unique()}
+        for future in concurrent.futures.as_completed(future_to_symbol):
+            result = future.result()
+            if result:
+                summary_rows.append(result)
 
 # Convert summary rows to DataFrame and display
 if summary_rows:
     df_summary = pd.DataFrame(summary_rows).sort_values(by="Tutar", ascending=False)
 
     st.subheader("Portföy Analiz")
-    dataframe_height = (len(df_summary) + 1) * 35 + 2
 
     column_configuration = {
-        "Fon": st.column_config.LinkColumn("Fon", help="Fon Kodu", width="small"),
-        "Unvan": st.column_config.TextColumn("Unvan", help="Fonun Ünvanı", width="large"),
-        "Miktar": st.column_config.NumberColumn("Miktar", help="Fon Adedi", width="small"),
-        "Maliyet": st.column_config.NumberColumn("Maliyet", help="İşlemler sonucu birim maliyeti", width="small"),
-        "Gider": st.column_config.NumberColumn("Gider", help="İşlemler sonucu gider", width="small"),
-        "Fiyat": st.column_config.NumberColumn("Fiyat", help="Güncel Fiyat", width="small"),
-        "Tutar": st.column_config.NumberColumn("Tutar", help="Güncel Tutar", width="small"),
-        "Δ": st.column_config.NumberColumn("Δ", help="Güncel fiyat değişim yüzdesi", width="small"),
-        "Başarı Δ": st.column_config.NumberColumn("Başarı Δ", help="Yıllıklandırılmış işlem getiri yüzdesi", width="small"),
-        "RSI": st.column_config.NumberColumn("RSI", help="RSI 14", width="small"),
-        "Volatilite": st.column_config.NumberColumn("Volatilite", help="Volatilite", width="small"),
-        "Sharpe Oranı": st.column_config.NumberColumn("Sharpe Oranı", help="Sharpe Oranı", width="small"),
+        "Count"     : st.column_config.NumberColumn("Count", help="Count", width="small"),
+        "Date"      : st.column_config.DateColumn("Date", help="Date", width="small"),
+        "Fon"       : st.column_config.LinkColumn("Fon", help="Fon Kodu", width="small"),
+        "Unvan"     : st.column_config.TextColumn("Unvan", help="Fonun Ünvanı", width="large"),
+        "Miktar"    : st.column_config.NumberColumn("Miktar", help="Fon Adedi", width="small"),
+        "Maliyet"   : st.column_config.NumberColumn("Maliyet", help="İşlemler sonucu birim maliyeti", width="small"),
+        "Gider"     : st.column_config.NumberColumn("Gider", help="İşlemler sonucu gider", width="small"),
+        "Fiyat"     : st.column_config.NumberColumn("Fiyat", help="Güncel Fiyat", width="small"),
+        "Tutar"     : st.column_config.NumberColumn("Tutar", help="Güncel Tutar", width="small"),
+        "Gün"       : st.column_config.NumberColumn("Gün", help="Gün", width="small"),
+        "Δ"         : st.column_config.NumberColumn("Δ", help="Güncel fiyat değişim yüzdesi", width="small"),
+        "Başarı Δ"  : st.column_config.NumberColumn("Başarı Δ", help="Yıllıklandırılmış işlem getiri yüzdesi", width="small"),
+        "RSI"       : st.column_config.NumberColumn("RSI", help="RSI 14", width="small"),
+        # "Volatilite": st.column_config.NumberColumn("Volatilite", help="Volatilite", width="small"),
+        # "Sharpe"    : st.column_config.NumberColumn("Sharpe", help="Sharpe Oranı", width="small"),
     }
+ 
+    recent_dates = df_summary['Date'].sort_values(ascending=False).unique()
+    col1, col2, col3, col4, col5 = st.columns([1, 1, 1, 1, 1])
+    with col5:
+        if len(recent_dates) > 4:
+            recent_date = recent_dates[4].strftime('%Y-%m-%d')
+            total_portfoy_5 = df_summary.loc[df_summary['Count'] == 5, 'Tutar'].sum()
+            st.metric( label=f"{recent_date} Portföy:", value=f"{total_portfoy_5:,.0f} ₺")
+    with col4:
+        if len(recent_dates) > 3:
+            recent_date = recent_dates[3].strftime('%Y-%m-%d')
+            total_portfoy_4 = df_summary.loc[df_summary['Count'] == 3, 'Tutar'].sum()
+            delta = total_portfoy_4 - total_portfoy_5 
+            st.metric( label=f"{recent_date} Portföy:", value=f"{total_portfoy_4:,.0f} ₺", delta=f"{delta:,.0f} ₺" )
+    with col3:
+        if len(recent_dates) > 2:
+            recent_date = recent_dates[2].strftime('%Y-%m-%d')
+            total_portfoy_3 = df_summary.loc[df_summary['Count'] == 3, 'Tutar'].sum()
+            delta = total_portfoy_4 - total_portfoy_3 
+            st.metric( label=f"{recent_date} Portföy:", value=f"{total_portfoy_3:,.0f} ₺", delta=f"{delta:,.0f} ₺" )
+    with col2:
+        if len(recent_dates) > 1:
+            recent_date = recent_dates[1].strftime('%Y-%m-%d')
+            total_portfoy_2 = df_summary.loc[df_summary['Count'] == 2, 'Tutar'].sum()
+            delta = total_portfoy_2 - total_portfoy_3 
+            st.metric( label=f"{recent_date} Portföy:", value=f"{total_portfoy_2:,.0f} ₺", delta=f"{delta:,.0f} ₺" )
+    with col1:
+        if len(recent_dates) > 0:
+            recent_date = recent_dates[0].strftime('%Y-%m-%d')
+            total_portfoy_1 = df_summary.loc[df_summary['Count'] == 1, 'Tutar'].sum()
+            delta = total_portfoy_1 - total_portfoy_2 
+            st.metric( label=f"{recent_date} Portföy:", value=f"{total_portfoy_1:,.0f} ₺", delta=f"{delta:,.0f} ₺" )
+
+    df_summary = df_summary[df_summary['Count'] <= 1]
+    df_summary.drop(columns=['Date', 'Count'], inplace=True)
 
     styled_df = df_summary.style
-    styled_df = styled_df.format({f'Gider': '₺ {:,.2f}', 
-                                  f'Miktar': '{:,.0f}', 
-                                  f'Maliyet': '₺ {:.4f}', 
-                                  f'Fiyat': '₺ {:.4f}', 
-                                  f'Tutar': '₺ {:,.2f}', 
-                                  f'Volatilite': '{:.2f}', 
-                                  f'Sharpe Oranı': '{:.2f}', 
-                                  f'Δ': '% {:,.2f}', 
-                                  f'Başarı Δ': '% {:,.2f}' , 
-                                  'RSI': '{:.2f}' })
-  
+    styled_df = styled_df.format({f'Gider'       : '₺ {:,.2f}', 
+                                  f'Miktar'      : '{:,.0f}', 
+                                  f'Maliyet'     : '₺ {:.4f}', 
+                                  f'Fiyat'       : '₺ {:.4f}', 
+                                  f'Tutar'       : '₺ {:,.2f}', 
+                                  f'Gün'         : '{:,.0f}', 
+                                #   f'Volatilite'  : '{:.2f}', 
+                                #   f'Sharpe Oranı': '{:.2f}', 
+                                  f'Δ'           : '% {:,.2f}', 
+                                  f'Başarı Δ'    : '% {:,.2f}' , 
+                                  f'RSI'         : '{:.2f}' })
+
     styled_df = styled_df.map(lambda val: f'<span><a target="_blank" href="https://www.tefas.gov.tr/FonAnaliz.aspx?FonKod={val}">{val}</a></span>' , subset=['Fon'])
     styled_df = styled_df.map(lambda val: color_gradient(val, f'Δ') if pd.notnull(val) else '', subset=[f'Δ'])
     styled_df = styled_df.map(lambda val: color_gradient(val, f'Başarı Δ') if pd.notnull(val) else '', subset=[f'Başarı Δ'])
     styled_df = styled_df.map(lambda val: RSI_gradient(val) if pd.notnull(val) else '', subset=['RSI'])
-
-    # st.write(styled_df.to_html(), unsafe_allow_html=True)
+    
+    dataframe_height = (len(df_summary) + 1) * 35 + 2
     st.dataframe(styled_df, hide_index=True, height=dataframe_height, use_container_width=True, column_config=column_configuration)
 else:
     st.write("No data to display.")
