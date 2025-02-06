@@ -38,6 +38,7 @@ if selected_symbols != st.session_state.favourites:
     # Save the selected symbols to CSV
     pd.DataFrame({'symbol': selected_symbols}).to_csv('data/favourites.csv', index=False)
     st.success("Favourites updated successfully.")
+    st.rerun()  # Rerun the script to refresh the page
 
 # Create DataFrame for st.dataframe
 selected_df = pd.DataFrame({
@@ -46,4 +47,4 @@ selected_df = pd.DataFrame({
 })
 
 # Display selected symbols using st.dataframe
-st.dataframe(selected_df, use_container_width=True, hide_index=True)
+st.dataframe(selected_df, use_container_width=True, hide_index=True, height=500)

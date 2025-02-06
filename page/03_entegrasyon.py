@@ -1,7 +1,6 @@
 import requests
 import pandas as pd
 import math
-import os
 import time
 import streamlit as st
 import pandas_ta as ta
@@ -157,12 +156,14 @@ class tefas_get:
         merged = pd.DataFrame()
         if FundTypes != [""] :
             for FundType in FundTypes:
+                time.sleep(2)
                 info = self.fetch_info(FundType, "", start_date_initial, end_date_initial)
                 if not info.empty :
                     merged = pd.concat([merged, info])
                     print(f"{FundType} - {len(info)} records added total records: {len(merged)} " )
         elif UmbrellaFundTypes != [""] :
             for UmbrellaFundType in UmbrellaFundTypes:
+                time.sleep(4)
                 info = self.fetch_info("", UmbrellaFundType, start_date_initial, end_date_initial)
                 if not info.empty :
                     merged = pd.concat([merged, info])
@@ -330,17 +331,17 @@ def calculate_ta(group):
     
     # Calculate technical indicators
     group_indexed.set_index('date', inplace=True)
-    group_indexed["EMA_5"] = ta.ema(group_indexed['close'], length=5) # Exponential Moving Average (EMA)
-    group_indexed["EMA_10"] = ta.ema(group_indexed['close'], length=10) # Exponential Moving Average (EMA)
-    group_indexed["EMA_12"] = ta.ema(group_indexed['close'], length=12) # Exponential Moving Average (EMA)
-    group_indexed["EMA_20"] = ta.ema(group_indexed['close'], length=20) # Exponential Moving Average (EMA)
-    group_indexed["EMA_26"] = ta.ema(group_indexed['close'], length=26) # Exponential Moving Average (EMA)
-    group_indexed["EMA_50"] = ta.ema(group_indexed['close'], length=50) # Exponential Moving Average (EMA)
-    group_indexed["EMA_100"] = ta.ema(group_indexed['close'], length=100) # Exponential Moving Average (EMA)
-    group_indexed["EMA_200"] = ta.ema(group_indexed['close'], length=200) # Exponential Moving Average (EMA)
-    group_indexed["SMA_5"] = ta.sma(group_indexed['close'], length=5)  # Simple Moving Average (SMA)
-    group_indexed["RSI_14"] = ta.rsi(group_indexed['close'], length=14) # Relative Strength Index (RSI)
-    group_indexed["MACD"] = group_indexed["EMA_12"] - group_indexed["EMA_26"] # Moving Average Convergence Divergence (MACD)
+    group_indexed["EMA_5"]   = ta.ema(group_indexed['close'], length=5)  # Exponential Moving Average (EMA)
+    group_indexed["EMA_10"]  = ta.ema(group_indexed['close'], length=10) 
+    group_indexed["EMA_12"]  = ta.ema(group_indexed['close'], length=12) 
+    group_indexed["EMA_20"]  = ta.ema(group_indexed['close'], length=20) 
+    group_indexed["EMA_26"]  = ta.ema(group_indexed['close'], length=26) 
+    group_indexed["EMA_50"]  = ta.ema(group_indexed['close'], length=50) 
+    group_indexed["EMA_100"] = ta.ema(group_indexed['close'], length=100)
+    group_indexed["EMA_200"] = ta.ema(group_indexed['close'], length=200)
+    group_indexed["SMA_5"]   = ta.sma(group_indexed['close'], length=5)  # Simple Moving Average (SMA)
+    group_indexed["RSI_14"]  = ta.rsi(group_indexed['close'], length=14) # Relative Strength Index (RSI) with RMA
+    group_indexed["MACD"]    = group_indexed["EMA_12"] - group_indexed["EMA_26"] # Moving Average Convergence Divergence (MACD)
 
     group_indexed.reset_index(inplace=True)
     return group_indexed
@@ -426,13 +427,17 @@ if st.button("Start"):
         fon_table_fundtype.rename(columns={'code': 'symbol'}, inplace=True)
         fon_table_fundtype['symbolwithtitle'] = fon_table_fundtype['symbol'].astype(str) +' - '+ fon_table_fundtype['title'].astype(str)
 
-        fetched_data_umbrellafundtype = tefas.fetch(start=date_start, end=date_end, columns=["code", "date", "price", "UmbrellaFundType", "title"], FundType=False, UmbrellaFundType=True)
-        fetched_data_umbrellafundtype.drop_duplicates(subset=['code', 'UmbrellaFundType'], ignore_index=True, inplace=True)
-        fon_table_umbrellafundtype = fetched_data_umbrellafundtype.pivot_table(index=['code'], columns='UmbrellaFundType', aggfunc='size', fill_value=0)
-        fon_table_umbrellafundtype.reset_index(inplace=True)
-        fon_table_umbrellafundtype = fon_table_umbrellafundtype.replace(0, False)
-        fon_table_umbrellafundtype = fon_table_umbrellafundtype.replace(1, True)
-        fon_table_umbrellafundtype.rename(columns={'code': 'symbol'}, inplace=True)
+        try:
+            fetched_data_umbrellafundtype = tefas.fetch(start=date_start, end=date_end, columns=["code", "date", "price", "UmbrellaFundType", "title"], FundType=False, UmbrellaFundType=True)
+            fetched_data_umbrellafundtype.drop_duplicates(subset=['code', 'UmbrellaFundType'], ignore_index=True, inplace=True)
+            fon_table_umbrellafundtype = fetched_data_umbrellafundtype.pivot_table(index=['code'], columns='UmbrellaFundType', aggfunc='size', fill_value=0)
+            fon_table_umbrellafundtype.reset_index(inplace=True)
+            fon_table_umbrellafundtype = fon_table_umbrellafundtype.replace(0, False)
+            fon_table_umbrellafundtype = fon_table_umbrellafundtype.replace(1, True)
+            fon_table_umbrellafundtype.rename(columns={'code': 'symbol'}, inplace=True)
+        except Exception as e:
+            fon_table_umbrellafundtype = pd.DataFrame()
+            st.error(f"Error: {e}")
 
         fon_table = pd.merge(fon_table_fundtype, fon_table_umbrellafundtype, on='symbol', how='left')
         fon_table.to_csv('data/fon_table.csv', encoding='utf-8-sig', index=False)
@@ -441,4 +446,5 @@ if st.button("Start"):
         st.success("TEFAS Fonlarının nitelikleri çekildi")
         
     st.success("İşlem başarıyla tamamlandı")
+    st.session_state.clear()
     st.cache_data.clear()

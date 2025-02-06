@@ -1,3 +1,3 @@
-pip install -r requirements.txt
+pip install -r requirements.txt 2>nul || echo Requirements installation failed, continuing...
 streamlit run app.py
 PAUSE

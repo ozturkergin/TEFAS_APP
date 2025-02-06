@@ -3,10 +3,10 @@ import pandas as pd
 import seaborn as sns
 import plotly.graph_objects as go
 import os
+import json
+from st_aggrid import AgGrid
 
 symbol_attributes_df = pd.DataFrame()
-df_combined_symbol_history = pd.DataFrame()
-df_combined_symbol_metrics = pd.DataFrame()
 set_filtered_symbols = set()
 
 def rerun():
@@ -18,7 +18,7 @@ def turkish_sort(x):
     locale.setlocale(locale.LC_ALL, 'tr_TR.UTF-8')
     return locale.strxfrm(x)
 
-@st.cache_data
+# @st.cache_data
 def fetch_data():
     if os.path.exists('data/fon_table.csv') :
         if 'df_fon_table' in st.session_state :
@@ -30,9 +30,11 @@ def fetch_data():
     if os.path.exists('data/tefas_transformed.csv') :
         if 'df_transformed' in st.session_state :
             df_transformed = st.session_state.df_transformed 
+            # st.write("tefas_transformed Analiz.py'de okundu session ile")
         else : 
             df_transformed = pd.read_csv('data/tefas_transformed.csv', parse_dates=['date'])
             st.session_state.df_transformed = df_transformed
+            # st.write("tefas_transformed Analiz.py'de dosyadan okundu")
 
     symbol_attributes_of_fon_table = [col for col in df_fon_table.columns if col.startswith('FundType_')]
     symbol_attributes_list = [col.replace('FundType_', '') for col in symbol_attributes_of_fon_table]
@@ -82,6 +84,20 @@ def RSI_gradient(val):
         color = sns.color_palette("RdYlGn", as_cmap=True)(norm_val)  # Green to Red gradient
         return f'background-color: rgba{tuple(int(c * 255) for c in color[:3])};'
 
+def shorten_hyperlink(val):
+    try:
+        # Create HTML formatted link with JavaScript onclick
+        return f'<a href="https://www.tefas.gov.tr/FonAnaliz.aspx?FonKod={val}" target="_blank" onclick="alert(\'Clicked on {val}\')">{val}</a>'
+    except Exception as e:
+        return val
+
+# Load weights from config.json
+config_file_path = "config.json"
+with open(config_file_path, "r") as file:
+    config = json.load(file)
+
+weights = config["weights"]
+
 # Cumulative change plot function
 def plot_cumulative_change(df_filtered, set_filtered_symbols, title=""):
     fig = go.Figure()
@@ -126,18 +142,20 @@ df_merged, df_fon_table, symbol_attributes_df = fetch_data()
 lv_time_range = st.session_state.filter_label
 
 column_configuration_fon = {
+    "symbollink"          : st.column_config.LinkColumn("Link", help="Link", width="small", display_text="🔗"),
     "symbol"              : st.column_config.TextColumn("Fon", help="Fon Kodu", width="small"),
     "title"               : st.column_config.TextColumn("Unvan", help="Fonun Ünvanı", width="large"),
+    f'Skor'               : st.column_config.NumberColumn(f'Skor', help="Sıralama", width="small"),
     f'{lv_time_range}-F%' : st.column_config.NumberColumn(f'{lv_time_range}-F%', help="Fiyat değişimi yüzdesi", width="small"),
     f'{lv_time_range}-YS%': st.column_config.NumberColumn(f'{lv_time_range}-YS%', help="Yatırımcı sayısı değişimi yüzdesi", width="small"),
-    f'{lv_time_range}-YS' : st.column_config.NumberColumn(f'{lv_time_range}-YS', help="Güncel Yatırımcı sayısı", width="small"),
+    f'YS' : st.column_config.NumberColumn(f'YS', help="Güncel Yatırımcı sayısı", width="small"),
     f'{lv_time_range}-BY%': st.column_config.NumberColumn(f'{lv_time_range}-BY%', help="Yatırımcı başına yatırım değişimi yüzdesi", width="small"),
-    f'{lv_time_range}-BY' : st.column_config.NumberColumn(f'{lv_time_range}-BY', help="Güncel Yatırımcı başına yatırım tutarı", width="small"),
+    f'BY' : st.column_config.NumberColumn(f'BY', help="Güncel Yatırımcı başına yatırım tutarı", width="small"),
     f'{lv_time_range}-BYΔ': st.column_config.NumberColumn(f'{lv_time_range}-BYΔ', help="Yatırımcı başına yatırım tutarı değişimi", width="small"),
     f'RSI_14'             : st.column_config.NumberColumn(f'RSI_14', help="Güncel RSI", width="small"),
 }
 
-col2, col3 = st.columns([9, 6])
+col2, col3 = st.columns([10, 6])
 
 with st.sidebar:
     with st.container():
@@ -173,24 +191,38 @@ with col2:
 
         if not filtered_attributes.empty or set_filtered_symbols:
             df_symbol_history_list = []
-            # df_combined_symbol_metrics_list = []
             lv_time_range = st.session_state.filter_label
 
             if not filtered_attributes.empty:    
                 for filtered_attribute in filtered_attributes['Fon Unvan Türü']:
-                    df_filtered_symbols = df_merged[df_merged[f'FundType_{filtered_attribute}'] == True]['symbol'].unique().tolist()
+                    df_filtered_symbols = df_fon_table[df_fon_table[f'FundType_{filtered_attribute}'] == True]['symbol'].unique().tolist()
                     set_filtered_symbols.update(df_filtered_symbols)
                 if no_show_ozel: 
-                    df_ozel_symbols = df_merged[df_merged[f'FundType_Özel'] == True]['symbol'].unique().tolist()
+                    df_ozel_symbols = df_fon_table[df_fon_table[f'FundType_Özel'] == True]['symbol'].unique().tolist()
                     set_filtered_symbols.difference_update(df_ozel_symbols)
                 if no_show_serbest: 
-                    df_serbest_symbols = df_merged[df_merged[f'FundType_Serbest'] == True]['symbol'].unique().tolist()
+                    df_serbest_symbols = df_fon_table[df_fon_table[f'FundType_Serbest'] == True]['symbol'].unique().tolist()
                     set_filtered_symbols.difference_update(df_serbest_symbols)
             
             recent_date = df_merged['date'].max()
 
             df_symbol_history = df_merged[(df_merged['symbol'].isin(set_filtered_symbols))].copy()
-            df_symbol_history.dropna(inplace=True)
+
+            # Calculate price change for each period
+            df_symbol_history['7d-F%'] = (df_symbol_history['close'] - df_symbol_history['close_7d']) / df_symbol_history['close_7d'] * 100
+            df_symbol_history['1m-F%'] = (df_symbol_history['close'] - df_symbol_history['close_1m']) / df_symbol_history['close_1m'] * 100
+            df_symbol_history['3m-F%'] = (df_symbol_history['close'] - df_symbol_history['close_3m']) / df_symbol_history['close_3m'] * 100
+            df_symbol_history['6m-F%'] = (df_symbol_history['close'] - df_symbol_history['close_6m']) / df_symbol_history['close_6m'] * 100
+            df_symbol_history['1y-F%'] = (df_symbol_history['close'] - df_symbol_history['close_1y']) / df_symbol_history['close_1y'] * 100
+            df_symbol_history['3y-F%'] = (df_symbol_history['close'] - df_symbol_history['close_3y']) / df_symbol_history['close_3y'] * 100
+
+            # Assign ranks based on price changes
+            df_symbol_history['7d-Rank'] = df_symbol_history['7d-F%'].rank(ascending=False, method='min')
+            df_symbol_history['1m-Rank'] = df_symbol_history['1m-F%'].rank(ascending=False, method='min')
+            df_symbol_history['3m-Rank'] = df_symbol_history['3m-F%'].rank(ascending=False, method='min')
+            df_symbol_history['6m-Rank'] = df_symbol_history['6m-F%'].rank(ascending=False, method='min')
+            df_symbol_history['1y-Rank'] = df_symbol_history['1y-F%'].rank(ascending=False, method='min')
+            df_symbol_history['3y-Rank'] = df_symbol_history['3y-F%'].rank(ascending=False, method='min')
 
             df_symbol_metrics = pd.DataFrame()
             df_symbol_metrics["symbol"] = df_symbol_history["symbol"] 
@@ -198,29 +230,53 @@ with col2:
             df_symbol_metrics[f'{lv_time_range}-F%'] = ( df_symbol_history[f'close'] - df_symbol_history[f'close_{lv_time_range}'] ) / df_symbol_history[f'close_{lv_time_range}'] * 100
             df_symbol_metrics[f'{lv_time_range}-YS%'] = ( df_symbol_history[f'number_of_investors'] - df_symbol_history[f'number_of_investors_{lv_time_range}'] ) / df_symbol_history[f'number_of_investors_{lv_time_range}'] * 100
             df_symbol_metrics[f'{lv_time_range}-BY%'] = ( df_symbol_history[f'market_cap_per_investors'] - df_symbol_history[f'market_cap_per_investors_{lv_time_range}'] ) / df_symbol_history[f'market_cap_per_investors_{lv_time_range}'] * 100
-            df_symbol_metrics[f'{lv_time_range}-YS'] = df_symbol_history[f'number_of_investors'] 
-            df_symbol_metrics[f'{lv_time_range}-BY'] = df_symbol_history[f'market_cap_per_investors'] 
+            df_symbol_metrics[f'YS'] = df_symbol_history[f'number_of_investors'] 
+            df_symbol_metrics[f'BY'] = df_symbol_history[f'market_cap_per_investors'] 
             df_symbol_metrics[f'{lv_time_range}-BYΔ'] = ( df_symbol_history[f'market_cap_per_investors'] - df_symbol_history[f'market_cap_per_investors_{lv_time_range}'] ) 
             df_symbol_metrics["RSI_14"] = df_symbol_history[f'RSI_14'] 
-            # df_combined_symbol_metrics_list.append(df_symbol_metrics) 
+            # Calculate the weighted score
+            weighted_sum = (
+                df_symbol_history['7d-Rank'] * weights['7d'] +
+                df_symbol_history['1m-Rank'] * weights['1m'] +
+                df_symbol_history['3m-Rank'] * weights['3m'] +
+                df_symbol_history['6m-Rank'] * weights['6m'] +
+                df_symbol_history['1y-Rank'] * weights['1y'] +
+                df_symbol_history['3y-Rank'] * weights['3y']
+            )
 
+            # Calculate the sum of weights for non-null values
+            weights_sum = (
+                df_symbol_history['7d-Rank'].notnull().astype(int) * weights['7d'] +
+                df_symbol_history['1m-Rank'].notnull().astype(int) * weights['1m'] +
+                df_symbol_history['3m-Rank'].notnull().astype(int) * weights['3m'] +
+                df_symbol_history['6m-Rank'].notnull().astype(int) * weights['6m'] +
+                df_symbol_history['1y-Rank'].notnull().astype(int) * weights['1y'] +
+                df_symbol_history['3y-Rank'].notnull().astype(int) * weights['3y']
+            )
+
+            # Calculate the average score for non-null values
+            df_symbol_metrics["Skor"] = ( weighted_sum / weights_sum ).rank(ascending=True, method='min')
+            # df_symbol_metrics["Skor"] = ( weighted_sum / weights_sum )
+            df_symbol_metrics["symbollink"] = "https://www.tefas.gov.tr/FonAnaliz.aspx?FonKod=" + df_symbol_history["symbol"] 
+ 
             styled_df = df_symbol_metrics.style
             styled_df = styled_df.format({f'{lv_time_range}-F%': '{:.2f}', 
                                           f'{lv_time_range}-YS%': '{:.2f}', 
                                           f'{lv_time_range}-BY%': '{:.2f}', 
-                                          f'{lv_time_range}-YS': '{:,.0f}', 
-                                          f'{lv_time_range}-BY': '₺ {:,.0f}' , 
+                                          f'YS': '{:,.0f}', 
+                                          f'Skor': '{:,.0f}', 
+                                          f'BY': '₺ {:,.0f}' , 
                                           f'{lv_time_range}-BYΔ': '₺ {:,.0f}' , 
                                           'RSI_14': '{:,.2f}' })
+            
             styled_df = styled_df.map(lambda val: color_gradient(val, f'{lv_time_range}-F%') if pd.notnull(val) else '', subset=[f'{lv_time_range}-F%'])
             styled_df = styled_df.map(lambda val: color_gradient(val, f'{lv_time_range}-YS%') if pd.notnull(val) else '', subset=[f'{lv_time_range}-YS%'])
             styled_df = styled_df.map(lambda val: color_gradient(val, f'{lv_time_range}-BY%') if pd.notnull(val) else '', subset=[f'{lv_time_range}-BY%'])
-            styled_df = styled_df.map(lambda val: color_gradient(val, f'{lv_time_range}-YS') if pd.notnull(val) else '', subset=[f'{lv_time_range}-YS'])
-            styled_df = styled_df.map(lambda val: color_gradient(val, f'{lv_time_range}-BY') if pd.notnull(val) else '', subset=[f'{lv_time_range}-BY'])
+            styled_df = styled_df.map(lambda val: color_gradient(val, f'YS') if pd.notnull(val) else '', subset=[f'YS'])
+            styled_df = styled_df.map(lambda val: color_gradient(val, f'BY') if pd.notnull(val) else '', subset=[f'BY'])
             styled_df = styled_df.map(lambda val: color_gradient(val, f'{lv_time_range}-BYΔ') if pd.notnull(val) else '', subset=[f'{lv_time_range}-BYΔ'])
             styled_df = styled_df.map(lambda val: RSI_gradient(val) if pd.notnull(val) else '', subset=['RSI_14'])
 
-            # if not df_combined_symbol_metrics.empty:
             if not df_symbol_metrics.empty:
                 selectable_symbols = st.dataframe(styled_df, use_container_width=True, hide_index=True, height=800, on_select="rerun", selection_mode="multi-row", column_config=column_configuration_fon)
                 set_filtered_symbols.clear()
