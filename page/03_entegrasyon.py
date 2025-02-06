@@ -5,7 +5,7 @@ import time
 import streamlit as st
 import pandas_ta as ta
 
-from pandas_ta.utils import get_offset, verify_series, signals
+# from pandas_ta.utils import get_offset, verify_series, signals
 from datetime import datetime, timedelta, date
 from typing import Dict, List, Optional, Union
 from marshmallow import Schema, fields, EXCLUDE, pre_load, post_load

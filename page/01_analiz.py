@@ -4,7 +4,6 @@ import seaborn as sns
 import plotly.graph_objects as go
 import os
 import json
-from st_aggrid import AgGrid
 
 symbol_attributes_df = pd.DataFrame()
 set_filtered_symbols = set()
