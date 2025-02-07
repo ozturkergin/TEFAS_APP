@@ -422,8 +422,7 @@ if st.button("Start"):
         fetched_data_fundtype.drop_duplicates(subset=['code', 'FundType'], ignore_index=True, inplace=True)
         fon_table_fundtype = fetched_data_fundtype.pivot_table(index=['title', 'code'], columns='FundType', aggfunc='size', fill_value=0)
         fon_table_fundtype.reset_index(inplace=True)
-        fon_table_fundtype = fon_table_fundtype.replace(0, False)
-        fon_table_fundtype = fon_table_fundtype.replace(1, True)
+        fon_table_fundtype = fon_table_fundtype.map(lambda x: False if x == 0 else (True if x == 1 else x))
         fon_table_fundtype.rename(columns={'code': 'symbol'}, inplace=True)
         fon_table_fundtype['symbolwithtitle'] = fon_table_fundtype['symbol'].astype(str) +' - '+ fon_table_fundtype['title'].astype(str)
 
@@ -432,8 +431,7 @@ if st.button("Start"):
             fetched_data_umbrellafundtype.drop_duplicates(subset=['code', 'UmbrellaFundType'], ignore_index=True, inplace=True)
             fon_table_umbrellafundtype = fetched_data_umbrellafundtype.pivot_table(index=['code'], columns='UmbrellaFundType', aggfunc='size', fill_value=0)
             fon_table_umbrellafundtype.reset_index(inplace=True)
-            fon_table_umbrellafundtype = fon_table_umbrellafundtype.replace(0, False)
-            fon_table_umbrellafundtype = fon_table_umbrellafundtype.replace(1, True)
+            fon_table_umbrellafundtype = fon_table_umbrellafundtype.map(lambda x: False if x == 0 else (True if x == 1 else x))
             fon_table_umbrellafundtype.rename(columns={'code': 'symbol'}, inplace=True)
         except Exception as e:
             fon_table_umbrellafundtype = pd.DataFrame()
