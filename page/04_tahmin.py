@@ -67,7 +67,13 @@ with st.sidebar:
                 set_filtered_symbols.update(myportfolio_summarized['symbol'].unique().tolist())
 
 for symbol in set_filtered_symbols:
-    data = df_merged[df_merged['symbol'] == symbol]
+    data = df_merged[df_merged['symbol'] == symbol].copy()
+    data.set_index('date', inplace=True)
+    
+    complete_date_range = pd.date_range(start=data.index.min(), end=data.index.max(), freq='D')
+    data = data.reindex(complete_date_range).ffill().reset_index()
+    data.rename(columns={'index': 'date'}, inplace=True)
+
     title = data.iloc[0]['title']
     data = data[['date', 'close']].copy()
     data.rename(columns={'date': 'ds', 'close': 'y'}, inplace=True)
