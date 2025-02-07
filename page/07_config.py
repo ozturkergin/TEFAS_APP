@@ -11,9 +11,6 @@ default_config = {
         "6m": 1.1,
         "1y": 1.2,
         "3y": 1.4
-    },
-    "api_keys": {
-        "example_api": "your_api_key_here"
     }
 }
 

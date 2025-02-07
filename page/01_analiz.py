@@ -91,7 +91,7 @@ def shorten_hyperlink(val):
         return val
 
 # Load weights from config.json
-config_file_path = "config.json"
+config_file_path = "page/config.json"
 with open(config_file_path, "r") as file:
     config = json.load(file)
 
