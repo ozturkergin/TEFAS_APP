@@ -12,5 +12,4 @@ seaborn
 plotly 
 nbformat 
 prophet
-TA-Lib
 setuptools
