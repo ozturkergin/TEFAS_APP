@@ -246,14 +246,14 @@ if summary_rows:
     with col4:
         if len(recent_dates) > 3:
             recent_date = recent_dates[3].strftime('%Y-%m-%d')
-            total_portfoy_4 = df_summary.loc[df_summary['Count'] == 3, 'Tutar'].sum()
+            total_portfoy_4 = df_summary.loc[df_summary['Count'] == 4, 'Tutar'].sum()
             delta = total_portfoy_4 - total_portfoy_5 
             st.metric( label=f"{recent_date} Portföy:", value=f"{total_portfoy_4:,.0f} ₺", delta=f"{delta:,.0f} ₺" )
     with col3:
         if len(recent_dates) > 2:
             recent_date = recent_dates[2].strftime('%Y-%m-%d')
             total_portfoy_3 = df_summary.loc[df_summary['Count'] == 3, 'Tutar'].sum()
-            delta = total_portfoy_4 - total_portfoy_3 
+            delta = total_portfoy_3 - total_portfoy_4 
             st.metric( label=f"{recent_date} Portföy:", value=f"{total_portfoy_3:,.0f} ₺", delta=f"{delta:,.0f} ₺" )
     with col2:
         if len(recent_dates) > 1:
