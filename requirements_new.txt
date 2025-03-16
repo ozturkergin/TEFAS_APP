@@ -1,0 +1,15 @@
+streamlit
+bs4
+urllib3
+marshmallow
+pandas_ta
+matplotlib
+scikit-learn
+pandas 
+Cython  
+seaborn
+plotly 
+nbformat 
+prophet
+setuptools
+numpy

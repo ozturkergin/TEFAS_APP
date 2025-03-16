@@ -143,6 +143,13 @@ for symbol in set_filtered_symbols:
 df_results = pd.DataFrame.from_dict(symbol_data, orient='columns')
 df_results.index = [desc for _, desc in pattern_ids]  # Use descriptions as index
 
+st.title("Patterns")
+# Add toggle switch for showing/hiding rows with all empty columns
+show_empty_patterns = st.checkbox("Show Empty Patterns", value=False)
+
+if not show_empty_patterns:
+    df_results = df_results[(df_results.T != 0).any() & df_results.notna().any(axis=1)]
+
 # Style the DataFrame
 def style_arrow(val):
     if pd.isna(val):
@@ -164,7 +171,7 @@ def color_arrows(val):
     else:
         return ''
 
-styled_df = df_results.style.format(style_arrow).map(color_arrows) 
+
 
 # Initialize column configuration dictionary
 column_configuration_fon = {}
@@ -183,4 +190,5 @@ for symbol in sorted(list(set_filtered_symbols)):
 
 # Display in Streamlit
 dataframe_height = (len(df_results) + 1) * 35 + 2
-st.dataframe(styled_df, use_container_width=True, column_config=column_configuration_fon, height=800)
+styled_df = df_results.style.format(style_arrow).map(color_arrows) 
+st.dataframe(styled_df, use_container_width=True, column_config=column_configuration_fon, height=dataframe_height)

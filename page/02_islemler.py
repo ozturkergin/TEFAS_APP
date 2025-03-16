@@ -51,7 +51,25 @@ if df_portfolio.empty:  # Check if the portfolio is empty and set up initial Dat
 
 empty_row = pd.DataFrame({"symbol": [""], "date": [""], "transaction_type": [""], "quantity": [0], "price": [0],})
 for _ in range(prompt_number_of_lines): # Add five extra empty lines if the portfolio is not empty
+    df_portfolio.reset_index(inplace=True, drop=True)
     df_portfolio = pd.concat([df_portfolio, empty_row], ignore_index=True)
+
+def calculate_basari_delta(row):
+    symbol = row['symbol']
+    recent_data = df_transformed[df_transformed['symbol'] == symbol].sort_values('date')
+    if not recent_data.empty:
+        most_recent_price = recent_data['close'].iloc[-1]
+        most_recent_date = recent_data['date'].iloc[-1]
+        price_change = (most_recent_price - row['price']) / row['price']
+        days_difference = (most_recent_date - row['date']).days
+        if days_difference > 0:
+            yearly_adjusted_change = (price_change * 365) / days_difference
+            return yearly_adjusted_change * 100  # Convert to percentage
+    return None
+
+# Apply the calculation
+df_portfolio['Başarı Δ'] = df_portfolio.apply(calculate_basari_delta, axis=1)
+df_portfolio['amount'] = df_portfolio['quantity'] * df_portfolio['price']
 
 # Ensure the date column is treated as datetime for the data editor
 df_portfolio['date'] = pd.to_datetime(df_portfolio['date'], errors='coerce')
@@ -62,6 +80,8 @@ column_config = {
     "date": st.column_config.DateColumn("Tarih", help="Transaction date"),  # Proper date column
     "transaction_type": st.column_config.SelectboxColumn("İşlem", options=["buy", "sell"], help="Select buy or sell"),
     "quantity": st.column_config.NumberColumn("Miktar", help="Number of shares", min_value=1, step=1),
+    "amount": st.column_config.NumberColumn("Tutar", help="Transaction Amount", min_value=0.0, format="₺ %.2f"),
+    "Başarı Δ": st.column_config.NumberColumn("Başarı Δ", help="Yearly adjusted price change", min_value=0.0, format="%.2f %%"),
 }
 
 col2, col3 = st.columns([1, 2])

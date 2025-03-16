@@ -284,7 +284,7 @@ if summary_rows:
                                   f'Başarı Δ'    : '% {:,.2f}' , 
                                   f'RSI'         : '{:.2f}' })
 
-    styled_df = styled_df.map(lambda val: f'<span><a target="_blank" href="https://www.tefas.gov.tr/FonAnaliz.aspx?FonKod={val}">{val}</a></span>' , subset=['Fon'])
+    styled_df = styled_df.map(lambda val: f'<span><a target="_blank" href="https://www.tefas.gov.tr/FonAnaliz.aspx?FonKod={val}">{val}</a></span>', subset=['Fon'])
     styled_df = styled_df.map(lambda val: color_gradient(val, f'Δ') if pd.notnull(val) else '', subset=[f'Δ'])
     styled_df = styled_df.map(lambda val: color_gradient(val, f'Başarı Δ') if pd.notnull(val) else '', subset=[f'Başarı Δ'])
     styled_df = styled_df.map(lambda val: RSI_gradient(val) if pd.notnull(val) else '', subset=['RSI'])

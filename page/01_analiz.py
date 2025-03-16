@@ -66,6 +66,23 @@ def color_gradient(val, column_name):
     color = sns.color_palette("RdYlGn", as_cmap=True)(norm_val)
     return f'background-color: rgba{tuple(int(c * 255) for c in color[:3])}'
 
+def color_gradient_reverse(val, column_name):
+    if pd.isna(val) or pd.isnull(val):  # Exclude NaN and inf values
+        return ''
+
+    ranks = df_symbol_metrics[column_name].rank(method='min')  # Get the ranks of the values in the specified column
+    max_rank = ranks.max()
+    
+    try:
+        current_rank = ranks[df_symbol_metrics[column_name] == val].iloc[0]  # Get the rank of the current value
+    except IndexError:
+        return ''  # Or you could return a default color
+    
+    norm_val = (current_rank - 1) / (max_rank)  # Normalize the rank to [0, 1] Subtract 1 to make it 0-indexed
+    norm_val = max(0, min(1, norm_val))  # Clip to [0, 1] manually
+    color = sns.color_palette("RdYlGn_r", as_cmap=True)(norm_val)  # Use reversed color palette
+    return f'background-color: rgba{tuple(int(c * 255) for c in color[:3])}'
+
 def RSI_gradient(val):
     if pd.isna(val) or pd.isnull(val):  # Handle NaN and inf values
         return ''
@@ -174,6 +191,7 @@ with st.sidebar:
 
 with col2:
     with st.container():
+        st.title("Analiz")
         display_buttons() 
 
         if show_favourites:
@@ -273,6 +291,7 @@ with col2:
             styled_df = styled_df.map(lambda val: color_gradient(val, f'{lv_time_range}-BY%') if pd.notnull(val) else '', subset=[f'{lv_time_range}-BY%'])
             styled_df = styled_df.map(lambda val: color_gradient(val, f'YS') if pd.notnull(val) else '', subset=[f'YS'])
             styled_df = styled_df.map(lambda val: color_gradient(val, f'BY') if pd.notnull(val) else '', subset=[f'BY'])
+            styled_df = styled_df.map(lambda val: color_gradient_reverse(val, f'Skor') if pd.notnull(val) else '', subset=[f'Skor'])
             styled_df = styled_df.map(lambda val: color_gradient(val, f'{lv_time_range}-BYΔ') if pd.notnull(val) else '', subset=[f'{lv_time_range}-BYΔ'])
             styled_df = styled_df.map(lambda val: RSI_gradient(val) if pd.notnull(val) else '', subset=['RSI_14'])
 

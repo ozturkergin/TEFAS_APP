@@ -140,7 +140,7 @@ class tefas_get:
                 info['UmbrellaFundType'] = "UmbrellaFundType_" + UmbrellaFundType[1]
 
             if not info.empty :
-                info_result = pd.concat([info_result, info])
+                info_result = pd.concat([info_result, info], ignore_index=True)
                 info_result = info_result.reset_index(drop=True)
                 info = info.reset_index(drop=True)
 
@@ -159,19 +159,19 @@ class tefas_get:
                 time.sleep(2)
                 info = self.fetch_info(FundType, "", start_date_initial, end_date_initial)
                 if not info.empty :
-                    merged = pd.concat([merged, info])
+                    merged = pd.concat([merged, info], ignore_index=True)
                     print(f"{FundType} - {len(info)} records added total records: {len(merged)} " )
         elif UmbrellaFundTypes != [""] :
             for UmbrellaFundType in UmbrellaFundTypes:
                 time.sleep(4)
                 info = self.fetch_info("", UmbrellaFundType, start_date_initial, end_date_initial)
                 if not info.empty :
-                    merged = pd.concat([merged, info])
+                    merged = pd.concat([merged, info], ignore_index=True)
                     print(f"{UmbrellaFundType} - {len(info)} records added total records: {len(merged)} " )
         else :
             info = self.fetch_info("", "", start_date_initial, end_date_initial)
             if not info.empty :
-                merged = pd.concat([merged, info])
+                merged = pd.concat([merged, info], ignore_index=True)
                 print(f" - {len(info)} records added total records: {len(merged)} " )
 
         print(f"Data extracted")

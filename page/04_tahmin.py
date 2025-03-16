@@ -34,6 +34,8 @@ df_merged, df_fon_table = fetch_data()
 
 unique_symbols = sorted(df_fon_table['symbol'].unique().tolist())
 
+st.title("Forecasting")
+
 # Multiselect with unique symbols
 selected_symbols = st.multiselect(
     'Fon:',
