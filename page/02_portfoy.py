@@ -4,6 +4,7 @@ import os
 import concurrent.futures
 import seaborn as sns
 from datetime import datetime
+import plotly.express as px
 
 # Load fon_table.csv if it exists, otherwise warn the user
 if os.path.exists('data/fon_table.csv'):
@@ -58,13 +59,6 @@ df_summary = pd.DataFrame(columns=['Count', 'Date', 'Fon', 'Unvan', 'Miktar', 'M
 
 df_portfolio['date'] = pd.to_datetime(df_portfolio['date'], errors='coerce')
 df_portfolio = df_portfolio[df_portfolio['symbol'] != ""].sort_values(by=['symbol', 'date'])
-
-# Function to calculate Sharpe ratio
-# def calculate_sharpe_ratio(daily_returns):
-#     mean_return = daily_returns.mean()
-#     std_return = daily_returns.std()
-#     sharpe_ratio = mean_return / std_return * (252 ** 0.5)
-#     return sharpe_ratio
 
 def color_gradient(val, column_name):
     if pd.isna(val) or pd.isnull(val):  # Exclude NaN and inf values
@@ -179,9 +173,6 @@ def process_symbol(symbol, count):
     if total_quantity > 0:
         percentage_change = ((most_recent_price - avg_buy_price) / avg_buy_price) * 100 if avg_buy_price != 0 else 0
         annual_gain = weighted_daily_gain / total_days if total_days != 0 else 0
-        # daily_returns = recent_data['close'].pct_change().dropna()
-        # volatility = daily_returns.std() * (252 ** 0.5) if not daily_returns.empty else 0
-        # sharpe_ratio = calculate_sharpe_ratio(daily_returns)
         avg_days = avg_days / total_quantity_bought if total_quantity_bought != 0 else 0
 
         return {
@@ -198,8 +189,6 @@ def process_symbol(symbol, count):
             'Δ': percentage_change,
             'Başarı Δ': round(annual_gain, 2),
             'RSI': round(most_recent_rsi, 2),
-            # 'Volatilite': volatility,
-            # 'Sharpe': sharpe_ratio
         }
 
 # Execute the process for each unique symbol in parallel
@@ -232,8 +221,6 @@ if summary_rows:
         "Δ"         : st.column_config.NumberColumn("Δ", help="Güncel fiyat değişim yüzdesi", width="small"),
         "Başarı Δ"  : st.column_config.NumberColumn("Başarı Δ", help="Yıllıklandırılmış işlem getiri yüzdesi", width="small"),
         "RSI"       : st.column_config.NumberColumn("RSI", help="RSI 14", width="small"),
-        # "Volatilite": st.column_config.NumberColumn("Volatilite", help="Volatilite", width="small"),
-        # "Sharpe"    : st.column_config.NumberColumn("Sharpe", help="Sharpe Oranı", width="small"),
     }
  
     recent_dates = df_summary['Date'].sort_values(ascending=False).unique()
@@ -278,8 +265,6 @@ if summary_rows:
                                   f'Fiyat'       : '₺ {:.4f}', 
                                   f'Tutar'       : '₺ {:,.2f}', 
                                   f'Gün'         : '{:,.0f}', 
-                                #   f'Volatilite'  : '{:.2f}', 
-                                #   f'Sharpe Oranı': '{:.2f}', 
                                   f'Δ'           : '% {:,.2f}', 
                                   f'Başarı Δ'    : '% {:,.2f}' , 
                                   f'RSI'         : '{:.2f}' })
@@ -291,5 +276,23 @@ if summary_rows:
     
     dataframe_height = (len(df_summary) + 1) * 35 + 2
     st.dataframe(styled_df, hide_index=True, height=dataframe_height, use_container_width=True, column_config=column_configuration)
+
+    # Create a pie chart based on FundType
+    df_summary = df_summary.merge(df_fon_table, left_on='Fon', right_on='symbol', how='left')
+    fund_types = [col for col in df_fon_table.columns if col.startswith('FundType_')]
+    df_summary['FundType'] = df_summary[fund_types].idxmax(axis=1).str.replace('FundType_', '')
+    
+    Umbrellafund_types = [col for col in df_fon_table.columns if col.startswith('UmbrellaFundType_')]
+    df_summary['UmbrellaFundType'] = df_summary[Umbrellafund_types].idxmax(axis=1).str.replace('UmbrellaFundType_', '')
+    
+    col1, col2 = st.columns([10, 6])
+    
+    with col1:
+        fig = px.sunburst(df_summary, path=['UmbrellaFundType', 'Fon'], values='Tutar', title='Şemsiye Fon Türü Dağılımı')
+        st.plotly_chart(fig, use_container_width=True)
+    with col2:
+        fig2 = px.sunburst(df_summary, path=['FundType', 'Fon'], values='Tutar', title='Fon Türü Dağılımı')
+        st.plotly_chart(fig2, use_container_width=True)
+
 else:
     st.write("No data to display.")
