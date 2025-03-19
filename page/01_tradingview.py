@@ -77,10 +77,8 @@ if 'df_transformed' in st.session_state:
         dates = df_pivot['date'].tolist()  # Get the list of dates for the slider
         dates = [datetime.strptime(date, '%Y-%m-%d') for date in dates]
 
-        tab1, tab2 = st.tabs(["📈 Karşılaştırma", ""])
-        # Add a Streamlit slider for selecting start and end dates using indices
-        start_date, end_date = tab1.slider(
-            "Select date range",
+        start_date, end_date = st.slider(
+            "",
             min_value=dates[0],  # Default to the earliest date
             max_value=dates[-1],  # Default to the latest date
             value=(dates[0], dates[-1]),  # Default to full range
@@ -88,6 +86,10 @@ if 'df_transformed' in st.session_state:
             key="date_range_slider",
             label_visibility="visible",
         )
+
+        tab1, tab2 = st.tabs(["📈 Karşılaştırma", "Tablo"])
+        # Add a Streamlit slider for selecting start and end dates using indices
+
         start_date_f = start_date.strftime('%Y-%m-%d')
         end_date_f = end_date.strftime('%Y-%m-%d')
         start_date_f_buffer = start_date - timedelta(days=15)
@@ -129,7 +131,7 @@ if 'df_transformed' in st.session_state:
         #chart-container {{
             display: flex;
             width: 100%;
-            height: 600px;
+            height: 800px;
         }}
         #toolbox {{
             width: 200px;
@@ -186,7 +188,7 @@ if 'df_transformed' in st.session_state:
                 document.getElementById('chart'),
                 {{
                     width: document.getElementById('chart').clientWidth,
-                    height: 600,
+                    height: 800,
                     layout: {{
                         background: {{ color: '#ffffff' }},
                         textColor: '#333'
@@ -294,9 +296,10 @@ if 'df_transformed' in st.session_state:
         # Display the chart
         with tab1:
             chart_html = render_lightweight_chart(symbols_data)
-            st.components.v1.html(chart_html, height=650, scrolling=True)
+            st.components.v1.html(chart_html, height=850, scrolling=True)
             df_show = df_pivot[(df_pivot['date'] >= start_date_f) & (df_pivot['date'] <= end_date_f)].sort_values(by="date", ascending=False).copy()
-            st.dataframe(df_show, hide_index=True, height=600, selection_mode=["multi-row", "multi-column"])
+        with tab2:
+            st.dataframe(df_show, hide_index=True, height=800, selection_mode=["multi-row", "multi-column"])
 
 else:
     st.error("No transformed data available in the session state.")
