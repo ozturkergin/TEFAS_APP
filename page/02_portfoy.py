@@ -55,7 +55,7 @@ if df_portfolio.empty:
     st.stop()
 
 # Create a summary dataframe
-df_summary = pd.DataFrame(columns=['Count', 'Date', 'Fon', 'Unvan', 'Miktar', 'Maliyet', 'Gider', 'Fiyat', 'Tutar', 'Gün', 'Δ', 'Başarı Δ', 'RSI'])
+df_summary = pd.DataFrame(columns=['Count', 'Date', 'Fon', 'Unvan', 'Miktar', 'Maliyet', 'Gider', 'Fiyat', 'Tutar', 'Gün', '1d Δ', 'Δ', 'Başarı Δ', 'RSI'])
 
 df_portfolio['date'] = pd.to_datetime(df_portfolio['date'], errors='coerce')
 df_portfolio = df_portfolio[df_portfolio['symbol'] != ""].sort_values(by=['symbol', 'date'])
@@ -103,6 +103,7 @@ def process_symbol(symbol, count):
         return None
 
     most_recent_price = recent_data.iloc[count_index]['close']
+    d1_recent_price = recent_data.iloc[count_index-1]['close']
     most_recent_date = recent_data.iloc[count_index]['date']
     most_recent_rsi = recent_data.iloc[count_index]['RSI_14']
 
@@ -174,6 +175,7 @@ def process_symbol(symbol, count):
         percentage_change = ((most_recent_price - avg_buy_price) / avg_buy_price) * 100 if avg_buy_price != 0 else 0
         annual_gain = weighted_daily_gain / total_days if total_days != 0 else 0
         avg_days = avg_days / total_quantity_bought if total_quantity_bought != 0 else 0
+        d1_percentage_change = ((most_recent_price - d1_recent_price) / d1_recent_price) * 100 if d1_recent_price != 0 else 0
 
         return {
             'Count' : count,
@@ -186,6 +188,7 @@ def process_symbol(symbol, count):
             'Fiyat': most_recent_price,
             'Tutar': round(total_quantity * most_recent_price, 2),
             'Gün': avg_days,
+            '1d Δ': d1_percentage_change,
             'Δ': percentage_change,
             'Başarı Δ': round(annual_gain, 2),
             'RSI': round(most_recent_rsi, 2),
@@ -218,6 +221,7 @@ if summary_rows:
         "Fiyat"     : st.column_config.NumberColumn("Fiyat", help="Güncel Fiyat", width="small"),
         "Tutar"     : st.column_config.NumberColumn("Tutar", help="Güncel Tutar", width="small"),
         "Gün"       : st.column_config.NumberColumn("Gün", help="Gün", width="small"),
+        "1d Δ"      : st.column_config.NumberColumn("1d Δ", help="Günlük fiyat değişim yüzdesi", width="small"),
         "Δ"         : st.column_config.NumberColumn("Δ", help="Güncel fiyat değişim yüzdesi", width="small"),
         "Başarı Δ"  : st.column_config.NumberColumn("Başarı Δ", help="Yıllıklandırılmış işlem getiri yüzdesi", width="small"),
         "RSI"       : st.column_config.NumberColumn("RSI", help="RSI 14", width="small"),
@@ -265,6 +269,7 @@ if summary_rows:
                                   f'Fiyat'       : '₺ {:.4f}', 
                                   f'Tutar'       : '₺ {:,.2f}', 
                                   f'Gün'         : '{:,.0f}', 
+                                  f'1d Δ'        : '% {:,.2f}', 
                                   f'Δ'           : '% {:,.2f}', 
                                   f'Başarı Δ'    : '% {:,.2f}' , 
                                   f'RSI'         : '{:.2f}' })

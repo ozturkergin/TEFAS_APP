@@ -357,8 +357,8 @@ with col2:
     end_date = st.date_input("Bitiş Tarihi", value=date.today())
 with col3:
     tefas_price = st.checkbox("Fiyatları Çek", key="price_get", value=True, help="Fiyatları Çek")
-    tefas_fundtype = st.checkbox("Fon Türlerini Çek", key="fundtype_get", value=True, help="Fon Türlerini Çek")
     calculate_indicators = st.checkbox("Veri Zenginleştir", key="calculate_indicators", value=True, help="Tüm fiyatlarla İndikatörleri Hesapla")
+    tefas_fundtype = st.checkbox("Fon Türlerini Çek", key="fundtype_get", value=True, help="Fon Türlerini Çek")
 
 # Button to submit the input
 if st.button("Start"):
