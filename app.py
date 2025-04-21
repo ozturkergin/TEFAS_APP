@@ -58,10 +58,15 @@ config_page = st.Page(
     title="Konfigürasyon",
     icon=":material/settings:",
 )
+history_page = st.Page(
+    "page/08_history.py",
+    title="Benzer Dönem Analizi",
+    icon=":material/history:",
+)
 
 pg = st.navigation(
     {
-        "Analiz": [home_page, analiz_page, tahmin_page, patterns_page, comparison_page],
+        "Analiz": [home_page, analiz_page, tahmin_page, patterns_page, comparison_page, history_page],
         "Entegrasyon": [entegrasyon_page],
         "Portföy": [islemler_page, portfoy_page],
         "Ayarlar": [config_page, fonfavori_page],
