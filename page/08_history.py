@@ -178,14 +178,19 @@ def find_similar_period(days, days_forward, top_n=3):
                 profitability_data.append({
                     'Fon Unvan Türü': attribute,
                     'Symbol': symbol,
-                    'Profitability_%_Change': pct_change
+                    'Profitability_%_Change': pct_change,
+                    'Serbest mi': symbol_data[symbol_data['date'] == symbol_data['date'].min()]['FundType_Serbest'].values[0]
                 })
 
     profitability_df = pd.DataFrame(profitability_data)
 
     # Get top n symbols per category based on profitability
     top_symbols = profitability_df.groupby('Fon Unvan Türü').apply(
-        lambda x: x.nlargest(top_n, 'Profitability_%_Change')
+        lambda x: x.nlargest(
+            top_n, 'Profitability_%_Change'
+        ) if x.name == 'Serbest' else x[x['Serbest mi'] == False].nlargest(
+            top_n, 'Profitability_%_Change'
+        )
     ).reset_index(drop=True)
     
     # Calculate similarity score based on market_cap
