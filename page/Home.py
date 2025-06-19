@@ -6,31 +6,57 @@ from datetime import datetime
 
 st.title("Home Page")
 
+# Load data and get available dates
+if os.path.exists('data/fon_table.csv'):
+    if 'df_fon_table' in st.session_state:
+        df_fon_table = st.session_state.df_fon_table
+    else:
+        df_fon_table = pd.read_csv('data/fon_table.csv')
+        st.session_state.df_fon_table = df_fon_table
+else: 
+    st.stop()
+
+if os.path.exists('data/tefas_transformed.csv'):
+    if 'df_transformed' in st.session_state:
+        df_transformed = st.session_state.df_transformed
+    else:
+        df_transformed = pd.read_csv('data/tefas_transformed.csv', encoding='utf-8-sig', parse_dates=['date'])
+        st.session_state.df_transformed = df_transformed
+else: 
+    st.stop()
+
+# Get all available dates
+all_dates = pd.to_datetime(df_transformed['date'].unique())
+all_dates = pd.Series(sorted(all_dates))
+
+# Default dates
+default_recent_date = all_dates.max()
+default_prev_date = all_dates[all_dates < default_recent_date].max()
+
+# User selects dates (widgets OUTSIDE cached function)
+st.subheader("Select Dates for Comparison")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    selected_recent_date = st.date_input("Date To", value=default_recent_date, min_value=all_dates.min(), max_value=all_dates.max(), key="recent_date" )
+with col2:
+    prev_date_options = all_dates[all_dates < pd.to_datetime(selected_recent_date)]
+    if not prev_date_options.empty:
+        selected_prev_date = st.date_input(
+            "Date From", value=default_prev_date if default_prev_date < pd.to_datetime(selected_recent_date) else prev_date_options.max(),
+            min_value=all_dates.min(), max_value=pd.to_datetime(selected_recent_date) - pd.Timedelta(days=1), key="prev_date"
+        )
+    else:
+        st.warning("No previous date available before the selected recent date.")
+        st.stop()
+
+recent_date = pd.to_datetime(selected_recent_date)
+prev_date = pd.to_datetime(selected_prev_date)
+
 @st.cache_data
-def fetch_todays_data():
-    if os.path.exists('data/fon_table.csv'):
-        if 'df_fon_table' in st.session_state:
-            df_fon_table = st.session_state.df_fon_table
-        else:
-            df_fon_table = pd.read_csv('data/fon_table.csv')
-            st.session_state.df_fon_table = df_fon_table
-    else: 
-        st.stop()
-
-    if os.path.exists('data/tefas_transformed.csv'):
-        if 'df_transformed' in st.session_state:
-            df_transformed = st.session_state.df_transformed
-        else:
-            df_transformed = pd.read_csv('data/tefas_transformed.csv', encoding='utf-8-sig', parse_dates=['date'])
-            st.session_state.df_transformed = df_transformed
-    else: 
-        st.stop()
-
+def fetch_todays_data(recent_date, prev_date):
     summary_recent = pd.DataFrame(columns=['Fon Unvan Türü', 'symbol', 'market_cap'])  # Initialize as empty DataFrame
-
-    # Get the latest and previous dates
-    recent_date = df_transformed['date'].max()
-    prev_date = df_transformed[df_transformed['date'] < recent_date]['date'].max()
 
     # Separate data for recent_date and prev_date
     df_transformed_recent = df_transformed[df_transformed['date'] == recent_date]
@@ -70,8 +96,8 @@ def fetch_todays_data():
             'Fon Unvan Türü': attribute,
             recent_date_str: round(amount_t, 0),
             prev_date_str: round(amount_t_minus_1, 0),
-            'delta': round(delta, 0),
-            '%': round(delta_pct, 5),
+            'Δ': round(delta, 0),
+            'Δ %': round(delta_pct, 5),
             '': indicator
         })
 
@@ -81,25 +107,28 @@ def fetch_todays_data():
         else:
             summary_recent = filtered_recent.groupby(['Fon Unvan Türü', 'symbol'])['market_cap'].sum().reset_index()
 
-    dataframe_height = (len(data_fon_turu_summary) + 1) * 35 + 2
-    
-    col1, col2 = st.columns([6, 7])
-    with col1:
-        with st.container():
-            df_summary = pd.DataFrame(data_fon_turu_summary)
-            st.dataframe(df_summary, hide_index=True, height=dataframe_height)
-    with col2:
-        with st.container():
-            
-            treemap_data = pd.DataFrame({
-                'names': summary_recent['symbol'],
-                'parents': summary_recent['Fon Unvan Türü'],
-                'values': summary_recent['market_cap']
-            })
+    return summary_recent, data_fon_turu_summary, recent_date, prev_date
 
-            treemap_data = treemap_data[treemap_data['values'] > 0]  # Remove negative values
+summary_recent, data_fon_turu_summary, recent_date, prev_date = fetch_todays_data(recent_date, prev_date)
 
-            fig = px.treemap(
+dataframe_height = (len(data_fon_turu_summary) + 1) * 35 + 2
+
+col1, col2 = st.columns([6, 7])
+with col1:
+    with st.container():
+        df_summary = pd.DataFrame(data_fon_turu_summary)
+        st.dataframe(df_summary, hide_index=True, height=dataframe_height)
+with col2:
+    with st.container():
+        treemap_data = pd.DataFrame({
+            'names': summary_recent['symbol'],
+            'parents': summary_recent['Fon Unvan Türü'],
+            'values': summary_recent['market_cap']
+        })
+
+        treemap_data = treemap_data[treemap_data['values'] > 0]  # Remove negative values
+
+        fig = px.treemap(
             treemap_data,
             path=['parents', 'names'],  # Path to the names
             values='values',
@@ -108,8 +137,4 @@ def fetch_todays_data():
             # title="Market Cap Treemap",
             height=dataframe_height, )
 
-            st.plotly_chart(fig, use_container_width=True) # Display the treemap next to the DataFrame
-
-    return 0
-
-home_page = fetch_todays_data()
+        st.plotly_chart(fig, use_container_width=True) # Display the treemap next to the DataFrame

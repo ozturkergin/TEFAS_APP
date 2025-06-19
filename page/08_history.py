@@ -6,11 +6,18 @@ from datetime import datetime, timedelta
 st.title("Similar Period Analysis")
 
 # Add input for days variable outside the cached function
-days = st.number_input("Enter the number of days for analysis:", min_value=1, value=7, step=1)
-days_forward = st.number_input("Enter the number of days for time range before start of similar period:", min_value=1, value=14, step=1)
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    recent_date = st.date_input("Select recent date for analysis:", value=datetime.today() - timedelta(days=0))
+with col2:
+    days = st.number_input("Enter days for analysis bucket:", min_value=1, value=7,step=1)
+with col3:
+    days_forward = st.number_input("Enter days for best performers in similar history:", min_value=1, value=14, step=1)
 
 @st.cache_data
-def find_similar_period(days, days_forward, top_n=3):
+def find_similar_period(recent_date, days, days_forward, top_n=3):
     # Load data from session state or CSV
     if 'df_fon_table' in st.session_state:
         df_fon_table = st.session_state.df_fon_table
@@ -258,10 +265,12 @@ def find_similar_period(days, days_forward, top_n=3):
     
     # Do NOT fill NaN values - let them remain as NaN to display as empty in Streamlit
     # Format output (round numerical columns, but preserve NaN)
-    most_similar_details['Recent_%_Change'] = most_similar_details['Recent_%_Change'].round(2)
-    most_similar_details['Period_%_Change'] = most_similar_details['Period_%_Change'].round(2)
+    most_similar_details['Recent_%_Change'] = pd.to_numeric(most_similar_details['Recent_%_Change'], errors='coerce').round(2)
+    most_similar_details['Period_%_Change'] = pd.to_numeric(most_similar_details['Period_%_Change'], errors='coerce').round(2)
     for rank in range(1, top_n + 1):
-        most_similar_details[f'Top{rank}_%_Profitability'] = most_similar_details[f'Top{rank}_%_Profitability'].round(2)
+        colname = f'Top{rank}_%_Profitability'
+        if colname in most_similar_details.columns:
+            most_similar_details[colname] = pd.to_numeric(most_similar_details[colname], errors='coerce').round(2)
     
     return {
         'Period_Start': most_similar['Period_Start'],
@@ -271,27 +280,25 @@ def find_similar_period(days, days_forward, top_n=3):
     }
 
 # Execute analysis
-result = find_similar_period(days, days_forward)
+result = find_similar_period(recent_date, days, days_forward)
 if result:
     dataframe_height = (len(result['Details']) + 1) * 35 + 2
 
-    st.write(f"**Most Similar Historical Period**")
-    st.write(f"**Period**: {result['Period_Start'].strftime('%Y-%m-%d')} to {result['Period_End'].strftime('%Y-%m-%d')}")
-    st.write(f"**Similarity Score**: {result['Similarity_Score']}% (lower is more similar)")
+    st.subheader(f"**Most Similar Historical Period**: {result['Period_Start'].strftime('%Y-%m-%d')} to {result['Period_End'].strftime('%Y-%m-%d')} **Similarity Score**: {result['Similarity_Score']}% (lower is more similar)")
     
     st.subheader("Comparison Details")
     st.dataframe(
         result['Details'],
         column_config={
             'Fon Unvan Türü': 'Category',
-            'Recent_%_Change': 'Recent Week % Change',
-            'Period_%_Change': 'Historical Period % Change',
-            'Top1_Symbol': 'Top1',
-            'Top1_%_Profitability': 'Top1 % Profitability',
-            'Top2_Symbol': 'Top2',
-            'Top2_%_Profitability': 'Top2 % Profitability',
-            'Top3_Symbol': 'Top3',
-            'Top3_%_Profitability': 'Top3 % Profitability'
+            'Recent_%_Change': f'{recent_date - timedelta(days=days)} to {recent_date} %',
+            'Period_%_Change': f'{result['Period_Start'].strftime('%Y-%m-%d')} to {result['Period_End'].strftime('%Y-%m-%d')} %',
+            'Top1_Symbol': f'Top1 Historic',
+            'Top1_%_Profitability': 'Top1 Historic %',
+            'Top2_Symbol': f'Top2 Historic',
+            'Top2_%_Profitability': 'Top2 Historic %',
+            'Top3_Symbol': f'Top3 Historic',
+            'Top3_%_Profitability': 'Top3 Historic %'
         },
         height=dataframe_height,
         hide_index=True

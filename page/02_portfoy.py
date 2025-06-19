@@ -102,8 +102,13 @@ def process_symbol(symbol, count):
     if recent_data.empty:
         return None
 
-    most_recent_price = recent_data.iloc[count_index]['close']
-    d1_recent_price = recent_data.iloc[count_index-1]['close']
+    if not recent_data.empty and 0 <= count_index < len(recent_data):
+        most_recent_price = recent_data.iloc[count_index]['close']
+    else:
+        most_recent_price = None  # or set a default value or handle as needed
+    d1_recent_price = None
+    if not recent_data.empty and 0 <= count_index-1 < len(recent_data):
+        d1_recent_price = recent_data.iloc[count_index-1]['close']
     most_recent_date = recent_data.iloc[count_index]['date']
     most_recent_rsi = recent_data.iloc[count_index]['RSI_14']
 
@@ -159,7 +164,15 @@ def process_symbol(symbol, count):
 
             if quantity_remained > 0: # Remaining quantity at most recent price
                 days_held = (most_recent_date - transaction_date).days
-                weighted_daily_gain += ((most_recent_price - unit_price) / unit_price * 100) / days_held * 365 * quantity_remained
+                if (
+                    unit_price not in (None, 0) and
+                    days_held not in (None, 0) and
+                    most_recent_price is not None
+                ):
+                    weighted_daily_gain += ((most_recent_price - unit_price) / unit_price * 100) / days_held * 365 * quantity_remained
+                else:
+                    # Optionally handle the case where calculation can't be performed
+                    pass
                 total_days += quantity_remained
 
         elif transaction_type == 'sell':
@@ -175,7 +188,10 @@ def process_symbol(symbol, count):
         percentage_change = ((most_recent_price - avg_buy_price) / avg_buy_price) * 100 if avg_buy_price != 0 else 0
         annual_gain = weighted_daily_gain / total_days if total_days != 0 else 0
         avg_days = avg_days / total_quantity_bought if total_quantity_bought != 0 else 0
-        d1_percentage_change = ((most_recent_price - d1_recent_price) / d1_recent_price) * 100 if d1_recent_price != 0 else 0
+        if d1_recent_price not in (None, 0):
+            d1_percentage_change = ((most_recent_price - d1_recent_price) / d1_recent_price) * 100
+        else:
+            d1_percentage_change = 0
 
         return {
             'Count' : count,
