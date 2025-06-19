@@ -228,7 +228,32 @@ if summary_rows:
     }
  
     recent_dates = df_summary['Date'].sort_values(ascending=False).unique()
-    col1, col2, col3, col4, col5 = st.columns([1, 1, 1, 1, 1])
+    col1, col2, col3, col4, col5, col6, col7 = st.columns([1, 1, 1, 1, 1, 1, 1])
+    df_summary_metric = df_summary[df_summary['Count'] <= 1].copy()
+
+    with col7:       
+        if (
+            not df_summary_metric.empty
+            and 'Tutar' in df_summary_metric.columns
+            and 'Başarı Δ' in df_summary_metric.columns
+            and 'Gün' in df_summary_metric.columns
+        ):
+            numerator = (df_summary_metric['Başarı Δ'] * df_summary_metric['Tutar'] * df_summary_metric['Gün']).sum()
+            denominator = (df_summary_metric['Tutar'] * df_summary_metric['Gün']).sum()
+            weighted_perf = numerator / denominator if denominator != 0 else 0
+            st.metric("Portföy Tutar ve Gün Ağırlıklı Ortalama Başarı Δ", f"% {weighted_perf:.2f}")
+    with col6:
+        if (
+            not df_summary_metric.empty
+            and 'Gider' in df_summary_metric.columns
+            and 'Başarı Δ' in df_summary_metric.columns
+            and 'Gün' in df_summary_metric.columns
+        ):
+            # Calculate weighted average: sum(Gün * Başarı Δ * Maliyet) / sum(Gün * Maliyet)
+            numerator2 = (df_summary_metric['Gün'] * df_summary_metric['Başarı Δ'] * df_summary_metric['Gider']).sum()
+            denominator2 = (df_summary_metric['Gün'] * df_summary_metric['Gider']).sum()
+            weighted_perf2 = numerator2 / denominator2 if denominator2 != 0 else 0
+            st.metric("Portföy Gider Ağırlıklı Ortalama Başarı Δ", f"% {weighted_perf2:.2f}")
     with col5:
         if len(recent_dates) > 4:
             recent_date = recent_dates[4].strftime('%Y-%m-%d')
